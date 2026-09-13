@@ -1,0 +1,15 @@
+# Exclude the GitHub Pages documentation site from the published package.
+# The docs/ folder is served via GitHub Pages, not distributed through pub.dev.
+docs/
+
+# Project-internal agent/IDE data — must not be published to pub.dev.
+.codebuddy/
+
+# Release/notes files that are repo-internal, not package content.
+wiki/
+TODO.md
+AGENTS.md
+CONTRIBUTING.md
+
+# Local build artifacts (test caches, native assets) — not needed by consumers.
+build/

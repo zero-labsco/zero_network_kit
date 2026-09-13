@@ -1,0 +1,47 @@
+name: zero_network_kit
+description: "Flutter plugin for network diagnostics: connectivity check, ping, DNS resolution, speed test, port scanning, quality scoring and micro-benchmarks on Android, iOS, macOS, Windows and Linux."
+version: 1.0.0
+topics:
+  - network
+  - diagnostics
+  - speed-test
+  - ping
+  - dns
+
+homepage: https://github.com/zero-labsco/zero_network_kit
+repository: https://github.com/zero-labsco/zero_network_kit
+issue_tracker: https://github.com/zero-labsco/zero_network_kit/issues
+documentation: https://zero-labsco.github.io/zero_network_kit/
+
+license: MPL-2.0
+
+environment:
+  sdk: '>=3.11.0 <4.0.0'
+  flutter: '>=3.3.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  plugin_platform_interface: ^2.1.8
+  connectivity_plus: ^7.0.0
+  http: ^1.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: '6.0.0'
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.zerolabsco.zero_network_kit
+        pluginClass: ZeroNetworkKitPlugin
+      ios:
+        pluginClass: ZeroNetworkKitPlugin
+      macos:
+        pluginClass: ZeroNetworkKitPlugin
+      linux:
+        pluginClass: ZeroNetworkKitPlugin
+      windows:
+        pluginClass: ZeroNetworkKitPlugin
