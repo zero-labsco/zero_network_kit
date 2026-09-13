@@ -178,8 +178,16 @@ class SpeedTestService {
     required Duration maxDuration,
     void Function(SpeedTestProgress progress)? onProgress,
   }) async {
+    // 刻意不发送 `Cache-Control`：它不属于 CORS 安全头（白名单只有 Accept /
+    // Accept-Language / Content-Language / Content-Type / Range），设置后浏览器会
+    // 先发 OPTIONS 预检，而多数测速端点只放行 `authorization, content-type`，
+    // 预检被拒即表现为 Web 上的 `Failed to fetch`。测速端点自身已下发
+    // `Cache-Control: no-store` /
+    // `Cache-Control` is intentionally omitted: it is not CORS-safelisted, so
+    // setting it forces an OPTIONS preflight that most speed-test endpoints
+    // reject, surfacing as `Failed to fetch` on the web. Endpoints already
+    // send `Cache-Control: no-store` themselves.
     final request = http.Request('GET', uri)
-      ..headers['Cache-Control'] = 'no-cache'
       ..headers['User-Agent'] = 'zero_network_kit/1.0';
 
     final stopwatch = Stopwatch()..start();
@@ -241,9 +249,10 @@ class SpeedTestService {
     required Duration timeout,
     void Function(SpeedTestProgress progress)? onProgress,
   }) async {
+    // 同样省略 `Cache-Control`，理由见 [_measureDownload] /
+    // `Cache-Control` is omitted here too; see [_measureDownload] for why.
     final request = http.Request('POST', uri)
       ..headers['Content-Type'] = 'application/octet-stream'
-      ..headers['Cache-Control'] = 'no-cache'
       ..headers['User-Agent'] = 'zero_network_kit/1.0'
       ..bodyBytes = payload;
 
