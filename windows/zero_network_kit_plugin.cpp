@@ -209,6 +209,40 @@ std::string WindowsVersionString() {
   return version.str();
 }
 
+/// 已知 VPN 驱动在网卡描述里出现的关键字 /
+/// Substrings identifying well-known VPN drivers in an adapter description.
+const char* const kVpnDescriptionKeywords[] = {
+    "tap-windows", "wintun",    "wireguard", "openvpn",
+    "anyconnect",  "softether", "tailscale", "zerotier",
+    "nordlynx",    "mullvad",   "fortissl",  "globalprotect"};
+
+/// 判断一块网卡是否属于 VPN / Decides whether an adapter belongs to a VPN.
+///
+/// `IF_TYPE_TUNNEL` 覆盖 IKEv2 / SSTP / L2TP 等系统内置 VPN。不能把
+/// `IF_TYPE_PPP` 一律视为 VPN：PPPoE 宽带拨号同样是 PPP，会大规模误判。
+/// 而 TAP-Windows / Wintun / OpenVPN 这类适配器不按隧道类型上报，只能依据网卡
+/// 描述里的驱动名识别 /
+/// `IF_TYPE_TUNNEL` covers the built-in IKEv2 / SSTP / L2TP VPNs.
+/// `IF_TYPE_PPP` cannot be treated as a VPN unconditionally: PPPoE broadband is
+/// PPP as well and would be misreported on a large scale. TAP-Windows / Wintun /
+/// OpenVPN adapters do not report as tunnels, so they are recognised from the
+/// driver name in the adapter description instead.
+bool IsVpnAdapter(const IP_ADAPTER_ADDRESSES* adapter) {
+  if (adapter->IfType == IF_TYPE_TUNNEL) return true;
+
+  std::string description = WideToUtf8(adapter->Description);
+  for (char& character : description) {
+    if (character >= 'A' && character <= 'Z') {
+      character = static_cast<char>(character - 'A' + 'a');
+    }
+  }
+
+  for (const char* keyword : kVpnDescriptionKeywords) {
+    if (description.find(keyword) != std::string::npos) return true;
+  }
+  return false;
+}
+
 /// 汇总当前激活网络的属性 / Collects the properties of the active network.
 ///
 /// 活跃网卡由「是否拥有默认网关」优先决定，其次才看遍历顺序 /
@@ -243,7 +277,7 @@ flutter::EncodableMap CollectNetworkDetails() {
        adapter != nullptr; adapter = adapter->Next) {
     if (adapter->OperStatus != IfOperStatusUp) continue;
     if (adapter->IfType == IF_TYPE_SOFTWARE_LOOPBACK) continue;
-    if (adapter->IfType == IF_TYPE_TUNNEL) {
+    if (IsVpnAdapter(adapter)) {
       vpn_detected = true;
       continue;
     }

@@ -11,9 +11,10 @@ servers). Connectivity alone works with zero setup.
 
 ### Which platforms are supported? / 支持哪些平台？
 
-Android, iOS, macOS, Windows and Linux. Web is **not** supported.
+Android, iOS, macOS, Windows, Linux and Web (partial — see
+[Platform Support](Platform-Support)).
 
-支持 Android、iOS、macOS、Windows 与 Linux。Web **不支持**。详见
+支持 Android、iOS、macOS、Windows、Linux 与 Web（部分支持）。详见
 [Platform Support](Platform-Support)。
 
 ### Why is `ssid` / `signalStrength` `null` on desktop? / 为什么桌面上的 ssid/信号强度是 null？
