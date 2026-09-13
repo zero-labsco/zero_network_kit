@@ -8,18 +8,18 @@
 
 A Flutter plugin for **network diagnostics**: connectivity inspection, latency
 probing, DNS resolution, port checks, bandwidth measurement, quality scoring and
-micro-benchmarks — for Android, iOS, macOS, Windows and Linux (no Web).
+micro-benchmarks — for Android, iOS, macOS, Windows, Linux and Web (partial).
 
 [![pub version](https://img.shields.io/pub/v/zero_network_kit.svg)](https://pub.dev/packages/zero_network_kit)
 [![pub points](https://img.shields.io/pub/points/zero_network_kit.svg)](https://pub.dev/packages/zero_network_kit/score)
 [![CI](https://github.com/zero-labsco/zero_network_kit/actions/workflows/ci.yml/badge.svg)](https://github.com/zero-labsco/zero_network_kit/actions/workflows/ci.yml)
 [![License: MPL-2.0](https://img.shields.io/badge/License-MPL--2.0-blue.svg)](https://github.com/zero-labsco/zero_network_kit/blob/main/LICENSE)
-[![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20iOS%20%7C%20macOS%20%7C%20Windows%20%7C%20Linux-green.svg)](https://pub.dev/packages/zero_network_kit)
+[![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20iOS%20%7C%20macOS%20%7C%20Windows%20%7C%20Linux%20%7C%20Web-green.svg)](https://pub.dev/packages/zero_network_kit)
 [![Flutter](https://img.shields.io/badge/Flutter-✓-02569B?logo=flutter)](https://flutter.dev)
 [![Dart](https://img.shields.io/badge/Dart-✓-0175C2?logo=dart)](https://dart.dev)
 [![Style: effective dart](https://img.shields.io/badge/style-effective_dart-40c4ff.svg)](https://pub.dev/packages/effective_dart)
 
-> **🔔 First release:** `zero_network_kit` `1.0.0` is the initial public release, supporting Android, iOS, macOS, Windows and Linux. Web is **not** supported because the plugin relies on `dart:io`. Issues and pull requests are welcome!
+> **🔔 Upgrade recommended:** `1.0.1` adds partial Web support — the plugin now compiles and runs in the browser, and the capabilities the sandbox forbids degrade gracefully instead of failing. It also fixes the speed test on the web. Upgrade to `^1.0.1`.
 
 🌐 **[Official Website](https://www.zerolabsco.com/)** &nbsp;·&nbsp; 📦 **[View on pub.dev](https://pub.dev/packages/zero_network_kit)** &nbsp;·&nbsp; 🔗 **[View on GitHub](https://github.com/zero-labsco/zero_network_kit)**
 
@@ -74,7 +74,7 @@ Design goals:
 
 ```yaml
 dependencies:
-  zero_network_kit: ^1.0.0
+  zero_network_kit: ^1.0.1
 ```
 
 ### Android permissions
@@ -266,10 +266,30 @@ NetworkDiagnostic.configure(
 | macOS | ✅ Supported (Swift native side) |
 | Windows | ✅ Supported (C++ native side) |
 | Linux | ✅ Supported (C++ native side) |
-| Web | ❌ Not supported — the plugin uses `dart:io`, which does not compile to Web. |
+| Web | ⚠️ Partial — see [Web support](#web-support) below |
 
-> The pure-Dart services can be compiled on desktop, but only the five platforms
-> above are part of the officially supported matrix.
+### Web support
+
+The web build exposes the same static API. Capabilities that the browser sandbox
+forbids degrade gracefully — they return `null` or an "unavailable" result
+instead of throwing:
+
+| Capability | Web | Notes |
+| --- | --- | --- |
+| Connectivity | ✅ | via `connectivity_plus` |
+| Ping (`PingMode.tcp`) | ⚠️ | HTTPS round trip; the target must send CORS headers |
+| Ping (`PingMode.icmp`) | ❌ | throws `UnsupportedError` |
+| DNS (system resolver) | ✅ | via DNS-over-HTTPS |
+| DNS (explicit server) | ⚠️ | needs a DoH endpoint, otherwise "unsupported" |
+| Speed test | ✅ | HTTP download / upload |
+| Quality score | ✅ | pure function |
+| Benchmark | ✅ | pure function |
+| Port check / scan | ❌ | returns "unavailable" results |
+| Native details (SSID, gateway, MAC, VPN) | ❌ | `null` |
+
+`ZeroNetworkKit.getNativeNetworkDetails()` returns `null` on the web and
+`ZeroNetworkKit.getPlatformVersion()` returns `Web`. Call
+`NetworkCapabilities.current()` to discover the supported set at runtime.
 
 ## Documentation
 

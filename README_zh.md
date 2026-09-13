@@ -7,18 +7,18 @@
 </div>
 
 一个 Flutter **网络诊断**插件：连通性检测、延迟探测、DNS 解析、端口检测、带宽
-测速、质量评分与微基准测试，支持 Android、iOS、macOS、Windows 与 Linux（不支持 Web）。
+测速、质量评分与微基准测试，支持 Android、iOS、macOS、Windows、Linux 与 Web（部分支持）。
 
 [![pub version](https://img.shields.io/pub/v/zero_network_kit.svg)](https://pub.dev/packages/zero_network_kit)
 [![pub points](https://img.shields.io/pub/points/zero_network_kit.svg)](https://pub.dev/packages/zero_network_kit/score)
 [![CI](https://github.com/zero-labsco/zero_network_kit/actions/workflows/ci.yml/badge.svg)](https://github.com/zero-labsco/zero_network_kit/actions/workflows/ci.yml)
 [![License: MPL-2.0](https://img.shields.io/badge/License-MPL--2.0-blue.svg)](https://github.com/zero-labsco/zero_network_kit/blob/main/LICENSE)
-[![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20iOS%20%7C%20macOS%20%7C%20Windows%20%7C%20Linux-green.svg)](https://pub.dev/packages/zero_network_kit)
+[![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20iOS%20%7C%20macOS%20%7C%20Windows%20%7C%20Linux%20%7C%20Web-green.svg)](https://pub.dev/packages/zero_network_kit)
 [![Flutter](https://img.shields.io/badge/Flutter-✓-02569B?logo=flutter)](https://flutter.dev)
 [![Dart](https://img.shields.io/badge/Dart-✓-0175C2?logo=dart)](https://dart.dev)
 [![Style: effective dart](https://img.shields.io/badge/style-effective_dart-40c4ff.svg)](https://pub.dev/packages/effective_dart)
 
-> **🔔 首次发布：** `zero_network_kit` `1.0.0` 为首个公开版本，支持 Android、iOS、macOS、Windows 与 Linux；**不支持 Web**（插件依赖 `dart:io`）。欢迎提 issue 与 PR！
+> **🔔 推荐升级：** `1.0.1` 新增 Web 平台部分支持——插件现已可在浏览器中编译运行，浏览器沙箱禁止的能力会优雅降级而不会报错；同时修复了 Web 端测速失败的问题。建议升级到 `^1.0.1`。
 
 🌐 **[官方网站](https://www.zerolabsco.com/)** &nbsp;·&nbsp; 📦 **[在 pub.dev 查看](https://pub.dev/packages/zero_network_kit)** &nbsp;·&nbsp; 🔗 **[查看 GitHub 仓库](https://github.com/zero-labsco/zero_network_kit)**
 
@@ -72,7 +72,7 @@
 
 ```yaml
 dependencies:
-  zero_network_kit: ^1.0.0
+  zero_network_kit: ^1.0.1
 ```
 
 ### Android 权限
@@ -259,9 +259,29 @@ NetworkDiagnostic.configure(
 | macOS | ✅ 支持（Swift 原生实现） |
 | Windows | ✅ 支持（C++ 原生实现） |
 | Linux | ✅ 支持（C++ 原生实现） |
-| Web | ❌ 不支持——插件使用 `dart:io`，无法编译到 Web。 |
+| Web | ⚠️ 部分支持——详见下方 [Web 支持](#web-支持) |
 
-> 纯 Dart 服务可在桌面端编译，但仅有以上五个平台属于官方受支持矩阵。
+### Web 支持
+
+Web 构建提供同样的静态 API；浏览器沙箱禁止的能力会优雅降级（返回 `null`
+或“不可用”结果，而不是抛异常）：
+
+| 能力 | Web | 说明 |
+| --- | --- | --- |
+| 连通性检测 | ✅ | 通过 `connectivity_plus` |
+| Ping（`PingMode.tcp`） | ⚠️ | 以 HTTPS 往返耗时度量，目标主机需下发 CORS 头 |
+| Ping（`PingMode.icmp`） | ❌ | 抛出 `UnsupportedError` |
+| DNS（系统解析器） | ✅ | 通过 DNS-over-HTTPS |
+| DNS（指定服务器） | ⚠️ | 需要 DoH 端点，否则返回“不支持” |
+| 带宽测速 | ✅ | HTTP 下载 / 上传 |
+| 质量评分 | ✅ | 纯函数 |
+| 微基准 | ✅ | 纯函数 |
+| 端口检测 / 扫描 | ❌ | 返回“不可用”结果 |
+| 原生详情（SSID、网关、MAC、VPN） | ❌ | 返回 `null` |
+
+Web 上 `ZeroNetworkKit.getNativeNetworkDetails()` 返回 `null`，
+`ZeroNetworkKit.getPlatformVersion()` 返回 `Web`；运行时可用
+`NetworkCapabilities.current()` 查询当前平台支持的能力集合。
 
 ## 文档
 
