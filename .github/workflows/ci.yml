@@ -1,0 +1,272 @@
+name: CI
+
+on:
+  push:
+    branches: ['v*.*.*']
+    # 仅核心代码变更触发 CI，跳过纯资源/非包文件提交
+    # Only trigger CI for core code changes, skip pure asset/non-package commits
+    # 注意：README*.md / CHANGELOG.md / docs/** 等用户态文档「不」在此忽略——否则纯文档 PR
+    # 会让 ci.yml 整条 workflow 被跳过，导致分支保护的 required checks 永远不出现、PR 无法合并。
+    # 纯文档改动仍会触发 ci.yml，但被 path-filter 判定为 code=false，重 job 绿色跳过。
+    # NOTE: user-facing docs (README*.md / CHANGELOG.md / docs/**, plus any other
+    # `**.md`) are intentionally NOT ignored. Ignoring them would skip the entire ci.yml
+    # workflow for docs-only PRs, leaving the branch-protection required checks permanently
+    # pending and blocking merge. Docs-only PRs still trigger ci.yml but the heavy jobs
+    # skip green via path-filter (code=false).
+    paths-ignore:
+      # Convention/agent docs (AGENTS.md, .codebuddy/**) are intentionally NOT ignored
+      # so docs-only PRs still run CI and satisfy branch protection's required checks.
+      # 注意：以下文档类项刻意不在此忽略（否则纯文档 PR 会让整条 workflow 跳过、required checks 黄色卡死）：
+      #   README*.md / CHANGELOG.md / docs/** / CONTRIBUTING.md / TODO.md / 任意其他 **.md
+      # 它们不是 code 路径，但作为文档 PR 要让 workflow 触发（code=false → 绿色跳过）。
+      # 精细化忽略 GitHub 配置，但保留 workflows/ 目录的 CI 触发（Dependabot 改 action 版本需要跑 CI）
+      # Finer-grained GitHub ignores — workflows MUST trigger CI (Dependabot action updates need CI)
+      - '.github/ISSUE_TEMPLATE/**'     # Issue/PR templates
+      - '.github/workflows/stale.yml'          # Stale bot doesn't affect builds/publish
+      - '.github/workflows/link-check.yml'     # Link checker doesn't affect builds/publish
+      - '.github/workflows/dependabot-pr-bilingual.yml'  # PR body text injection doesn't affect builds/publish
+      - '**.png'             # PNG images
+      - '**.jpg'             # JPG images
+      - '**.jpeg'            # JPEG images
+      - '**.gif'             # GIF images
+      - '**.webp'            # WebP images
+      - '**.svg'             # SVG vector files
+      - '**.ico'             # Icon files
+      - '**.txt'             # Text files
+      - '**.gitignore'       # Git ignore files
+      - 'LICENSE'            # License file
+      - '.metadata'          # Package metadata (non-critical for CI validation)
+      # 注意：example/** 刻意「不」整体忽略——若忽略，只改 example 的 PR 会让整条 workflow
+      # 跳过、required checks 卡在 pending。改由下方 path-filter 判定：
+      # 只有 example/lib/** 与 example/pubspec*.yaml 等会影响评分的路径才 code=true 跑重活。
+      # NOTE: example/** is intentionally NOT blanket-ignored — doing so would skip the
+      # whole workflow for example-only PRs and leave required checks pending. The
+      # path-filter below decides instead: only score-affecting example paths (lib/**,
+      # pubspec*.yaml, analysis_options.yaml) set code=true and run the heavy jobs.
+  pull_request:
+    branches: [main, 'v*.*.*']
+    # Apply same ignore rules for PRs
+    # 对 PR 应用相同的忽略规则
+    paths-ignore:
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/workflows/stale.yml'
+      - '.github/workflows/link-check.yml'
+      - '.github/workflows/dependabot-pr-bilingual.yml'
+      - '**.png'
+      - '**.jpg'
+      - '**.jpeg'
+      - '**.gif'
+      - '**.webp'
+      - '**.svg'
+      - '**.ico'
+      - '**.txt'
+      - '**.gitignore'
+      - 'LICENSE'
+      - '.metadata'
+  # main 分支手动触发 / Manual trigger for main branch
+  workflow_dispatch:
+  # 支持被其他工作流复用（如 pub-publish.yml）
+  # Support being reused by other workflows (e.g. pub-publish.yml)
+  workflow_call:
+
+# 允许仅保留最新的同分支运行，取消旧的运行
+# Allow only keeping the latest run per branch, cancel older runs
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # 前置路径过滤：判断本次改动是否触及会影响 pub 包 / pana 评分的文件
+  # 仅改文档、GitHub 配置（workflows/dependabot.yml 等）、图片等非包文件时，
+  # 后续 Analyze & Test 与 Pana 检查直接绿色跳过，避免无谓的长时间 CI。
+  # Pre-path-filter: does this change touch files that affect the pub package / pana score?
+  # If only docs, GitHub config, or assets changed, the heavy jobs skip and go green.
+  path-filter:
+    name: Path Filter
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Filter paths
+        id: filter
+        uses: dorny/paths-filter@v4
+        with:
+          filters: |
+            # 所有文档/资源类文件（README*.md、CHANGELOG.md、docs/**、LICENSE、*.yml/*.yaml、*.txt、图片等）
+            # 均不在此列表 → 纯文档改动 code=false → 两个必需检查绿色跳过（不过 pana）。
+            # 仅当同时改动下列代码文件时，任一路径匹配 → code=true → 跑真实 analyze/test/pana。
+            # All doc/asset files are NOT listed here, so docs-only changes → code=false →
+            # required checks skip green (no pana). Only when any code path below is also
+            # changed does code=true → run real Analyze/Test/Pana.
+            code:
+              - 'lib/**'
+              - 'pubspec.yaml'
+              - 'pubspec.lock'
+              - 'analysis_options.yaml'
+              - 'test/**'
+              - 'android/**'
+              - 'ios/**'
+              - 'example/lib/**'
+              - 'example/pubspec.yaml'
+              - 'example/pubspec.lock'
+              - 'example/analysis_options.yaml'
+              - '.github/workflows/ci.yml'
+
+  analyze-and-test:
+    name: Analyze & Test
+    runs-on: ubuntu-latest
+    needs: path-filter
+    steps:
+      - name: Disable autocrlf on runner
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+          git config --global core.safecrlf false
+
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      # 非包代码改动（仅文档/GitHub 配置/资源）直接绿色跳过，满足分支保护 required check
+      # Non-package changes (docs/config/assets only): exit green to satisfy required check
+      - name: Skip on non-code changes
+        if: ${{ needs.path-filter.outputs.code != 'true' }}
+        run: |
+          echo "No package-affecting files changed; skipping Analyze & Test."
+          exit 0
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          # Pin the exact Flutter/Dart version so `dart format` output is identical
+          # across CI, publish, and the local dev environment. Unpinned `stable`
+          # advances over time and the formatter rules change, which makes HEAD's
+          # formatted files look "unformatted" on CI and loops forever.
+          # 固定 Flutter/Dart 版本，保证 CI、发布、本地三处的 dart format 输出一致。
+          flutter-version: '3.41.7'
+          cache: true
+
+      - name: Normalize working tree to LF
+        # `git add --renormalize` writes LF into the index per .gitattributes,
+        # then `git checkout -f -- .` materializes that LF index onto disk.
+        # Guarantees `dart format` (below) reads LF, so --set-exit-if-changed
+        # is idempotent and does not fail.
+        # 用纯 git 强制 LF：renormalize 写入 LF 索引，再 checkout -f 落盘。
+        run: |
+          git config core.autocrlf false
+          git config core.eol lf
+          git add --renormalize .
+          git checkout -f -- .
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v6
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock', 'example/pubspec.lock') }}
+          restore-keys: |
+            pub-${{ runner.os }}-
+
+      - name: Print Flutter version
+        run: flutter --version
+
+      # ========== 插件本体 / Plugin itself ==========
+
+      - name: Install plugin dependencies
+        run: flutter pub get
+
+      - name: Check plugin formatting
+        run: dart format --set-exit-if-changed lib/
+
+      - name: Run static analysis on plugin
+        run: flutter analyze lib/
+
+      - name: Run plugin unit tests
+        run: flutter test
+
+      # ========== Example 应用 / Example app ==========
+
+      - name: Install example dependencies
+        working-directory: example
+        run: flutter pub get
+
+      - name: Check example formatting
+        working-directory: example
+        run: dart format --set-exit-if-changed lib/ test/
+
+      - name: Run static analysis on example
+        working-directory: example
+        run: flutter analyze lib/
+
+      - name: Test example widget
+        working-directory: example
+        run: flutter test
+
+  # ========== pub.dev 评分自检（独立并行 job）/ pub.dev score self-check (separate parallel job) ==========
+  # 与 analyze-and-test 并行运行，analyze 通过后才执行，避免 analyze 失败时白白跑 pana
+  # Runs in parallel with analyze-and-test; only after analyze passes, to avoid wasting pana time
+  pana-check:
+    name: Pana Score Check
+    runs-on: ubuntu-latest
+    needs: [analyze-and-test, path-filter]
+    steps:
+      - name: Disable autocrlf on runner
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+          git config --global core.safecrlf false
+
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      # 非包代码改动直接绿色跳过，避免耗时的 pana 运行（满足分支保护 required check）
+      # Non-package changes: exit green to skip slow pana (satisfies required check)
+      - name: Skip on non-code changes
+        if: ${{ needs.path-filter.outputs.code != 'true' }}
+        run: |
+          echo "No package-affecting files changed; skipping Pana Score Check."
+          exit 0
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          # Keep in sync with the analyze-and-test job (flutter-version: '3.41.7').
+          # 与 analyze-and-test 保持一致（flutter-version: '3.41.7'）。
+          flutter-version: '3.41.7'
+          cache: true
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v6
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock', 'example/pubspec.lock') }}
+          restore-keys: |
+            pub-${{ runner.os }}-
+
+      - name: Run pana pub.dev score check
+        run: |
+          dart pub global activate pana
+          # 运行 pana：--no-warning 在有警告时以非零退出；用 set +e 防止 GitHub 默认的
+          # set -e 直接终止，确保后续仍能解析并展示分数
+          # Run pana with set +e so the score can still be parsed and reported
+          set +e
+          dart pub global run pana --no-warning --json . > pana.json
+          PANA_EXIT=$?
+          set -e
+          if [ $PANA_EXIT -ne 0 ]; then
+            echo "::error::pana reported warnings/errors (exit code $PANA_EXIT)"
+            cat pana.json
+            exit 1
+          fi
+          # pana 0.22+ 将分数嵌套在 scores 对象下：scores.grantedPoints
+          # pana 0.22+ nests the score under the 'scores' object
+          SCORE=$(python3 -c "import json; d=json.load(open('pana.json')); s=d.get('scores', d); print(s['grantedPoints'])")
+          MAX=$(python3 -c "import json; d=json.load(open('pana.json')); s=d.get('scores', d); print(s['maxPoints'])")
+          echo "pana score: $SCORE / $MAX"
+          if [ "$SCORE" -lt 120 ]; then
+            echo "::error::pana score ($SCORE/$MAX) is below the 120 threshold"
+            exit 1
+          fi
+          echo "pana score ($SCORE/$MAX) meets the 120 threshold"
