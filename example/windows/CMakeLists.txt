@@ -1,4 +1,4 @@
-﻿# Project-level configuration.
+# Project-level configuration.
 cmake_minimum_required(VERSION 3.14)
 project(zero_network_kit_example LANGUAGES CXX)
 

@@ -1,4 +1,4 @@
-﻿import 'dart:math' as math;
+import 'dart:math' as math;
 
 /// 单项基准测试结果 / Result of a single micro-benchmark.
 class BenchmarkResult {

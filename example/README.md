@@ -1,4 +1,4 @@
-﻿# zero_network_kit_example
+# zero_network_kit_example
 
 Demonstrates how to use the zero_network_kit plugin.
 

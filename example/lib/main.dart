@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:zero_network_kit/zero_network_kit.dart';
 
 void main() {

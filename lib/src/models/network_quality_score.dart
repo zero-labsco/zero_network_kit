@@ -1,4 +1,4 @@
-﻿/// 网络质量等级 / Overall network quality level.
+/// 网络质量等级 / Overall network quality level.
 enum NetworkQualityLevel {
   /// 未评估 / Not evaluated.
   unknown,

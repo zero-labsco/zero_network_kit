@@ -1,4 +1,4 @@
-﻿import 'dart:math' as math;
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 /// DNS 资源记录类型 / DNS resource record types understood by this codec.

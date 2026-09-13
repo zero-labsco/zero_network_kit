@@ -1,4 +1,4 @@
-﻿name: Dependabot PR Bilingual Body
+name: Dependabot PR Bilingual Body
 
 # Append a bilingual (English-primary, Chinese-secondary) summary to the body of
 # PRs opened by Dependabot. The PR title and commit subject stay English (required

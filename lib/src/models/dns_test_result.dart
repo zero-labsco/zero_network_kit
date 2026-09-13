@@ -1,4 +1,4 @@
-﻿/// 单台 DNS 服务器的解析结果 / Resolution result for a single DNS server.
+/// 单台 DNS 服务器的解析结果 / Resolution result for a single DNS server.
 class DnsTestResult {
   /// 构造 [DnsTestResult] / Creates a [DnsTestResult].
   const DnsTestResult({

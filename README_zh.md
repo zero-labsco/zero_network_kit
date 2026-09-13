@@ -1,4 +1,4 @@
-﻿# zero_network_kit
+# zero_network_kit
 
 <div align="center">
 

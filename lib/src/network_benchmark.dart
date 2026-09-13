@@ -1,4 +1,4 @@
-﻿import '../zero_network_kit_platform_interface.dart';
+import '../zero_network_kit_platform_interface.dart';
 import 'models/benchmark_result.dart';
 import 'network_diagnostic.dart';
 import 'services/benchmark_service.dart';

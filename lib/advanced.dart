@@ -1,4 +1,4 @@
-﻿/// 进阶 / 注入 / 底层 API / Advanced, injectable and low-level APIs.
+/// 进阶 / 注入 / 底层 API / Advanced, injectable and low-level APIs.
 ///
 /// 日常使用请优先 `package:zero_network_kit`；本文件面向需要自定义服务实现、
 /// 注入假实现或访问底层 DNS 报文编解码器的场景 /

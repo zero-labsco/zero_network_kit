@@ -1,4 +1,4 @@
-﻿/// 端口连通性检测结果 / Result of a TCP port reachability check.
+/// 端口连通性检测结果 / Result of a TCP port reachability check.
 class PortCheckResult {
   /// 构造 [PortCheckResult] / Creates a [PortCheckResult].
   const PortCheckResult({

@@ -1,4 +1,4 @@
-﻿# Zero Network Kit - Agent Guide
+# Zero Network Kit - Agent Guide
 
 This file defines the architecture, coding conventions, and required workflows for the `zero_network_kit` Flutter plugin. AI coding agents (CodeBuddy, Trae, Cursor, Claude Code, GitHub Copilot, Codex, etc.) should read and follow it for any task in this repository. It is the single source of truth for project conventions.
 

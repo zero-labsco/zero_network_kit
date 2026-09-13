@@ -1,4 +1,4 @@
-﻿/// 网速测试结果 / Result of a bandwidth (speed) test.
+/// 网速测试结果 / Result of a bandwidth (speed) test.
 class SpeedTestResult {
   /// 构造 [SpeedTestResult] / Creates a [SpeedTestResult].
   const SpeedTestResult({

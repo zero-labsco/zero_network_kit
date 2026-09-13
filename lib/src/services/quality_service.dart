@@ -1,4 +1,4 @@
-﻿import '../models/network_quality_score.dart';
+import '../models/network_quality_score.dart';
 import '../models/ping_result.dart';
 import '../models/speed_test_result.dart';
 import '../utils/network_config.dart';

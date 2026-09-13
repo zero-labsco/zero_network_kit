@@ -1,4 +1,4 @@
-﻿package com.zerolabsco.zero_network_kit
+package com.zerolabsco.zero_network_kit
 
 import android.content.Context
 import android.net.ConnectivityManager

@@ -1,4 +1,4 @@
-﻿#include "include/zero_network_kit/zero_network_kit_plugin_c_api.h"
+#include "include/zero_network_kit/zero_network_kit_plugin_c_api.h"
 
 #include <flutter/plugin_registrar_windows.h>
 

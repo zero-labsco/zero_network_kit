@@ -1,4 +1,4 @@
-﻿name: Dart Format Auto-Fix
+name: Dart Format Auto-Fix
 
 # Automatically run `dart format` on PRs and push fixes back when the code is
 # not properly formatted. This keeps style consistent without reviewer nudging.

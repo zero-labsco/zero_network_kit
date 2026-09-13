@@ -1,4 +1,4 @@
-﻿import '../zero_network_kit_platform_interface.dart';
+import '../zero_network_kit_platform_interface.dart';
 import 'models/dns_test_result.dart';
 import 'models/network_connection_info.dart';
 import 'models/network_diagnostic_report.dart';
