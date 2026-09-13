@@ -1,4 +1,4 @@
----
+﻿---
 name: ✨ Feature Request / 功能需求
 about: Suggest a new feature / 建议一个新功能
 title: '[FEATURE] '

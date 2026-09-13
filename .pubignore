@@ -1,4 +1,4 @@
-# Exclude the GitHub Pages documentation site from the published package.
+﻿# Exclude the GitHub Pages documentation site from the published package.
 # The docs/ folder is served via GitHub Pages, not distributed through pub.dev.
 docs/
 

@@ -1,4 +1,4 @@
-// winsock2.h must be included before windows.h, and the Flutter headers below
+﻿// winsock2.h must be included before windows.h, and the Flutter headers below
 // pull windows.h in transitively, so this has to stay the very first include.
 #include <winsock2.h>
 

@@ -1,4 +1,4 @@
-/// 全局默认诊断参数 / Global default parameters used by the diagnostic APIs.
+﻿/// 全局默认诊断参数 / Global default parameters used by the diagnostic APIs.
 ///
 /// 所有字段都有合理默认值，可按需覆盖后通过 `ZeroNetworkKit.init(config: ...)`
 /// 全局生效。/ Every field has a sensible default; override as needed and apply

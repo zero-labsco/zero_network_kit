@@ -1,4 +1,4 @@
-/// 网络连接类型 / Network connection type.
+﻿/// 网络连接类型 / Network connection type.
 enum NetworkType {
   /// 无网络 / No active network.
   none,

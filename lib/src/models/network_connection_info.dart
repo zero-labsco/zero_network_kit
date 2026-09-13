@@ -1,4 +1,4 @@
-import 'network_type.dart';
+﻿import 'network_type.dart';
 
 /// 当前网络连接快照 / A snapshot of the current network connection.
 class NetworkConnectionInfo {

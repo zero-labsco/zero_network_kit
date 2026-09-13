@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 
 /// 单项网络诊断能力 / A single network diagnostic capability.
 enum NetworkCapability {

@@ -1,4 +1,4 @@
----
+﻿---
 name: 🐛 Bug Report / Bug 报告
 about: Report a bug to help us improve / 报告一个问题帮助我们改进
 title: '[BUG] '

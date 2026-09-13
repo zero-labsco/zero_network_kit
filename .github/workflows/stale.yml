@@ -1,4 +1,4 @@
-# 自动标记并关闭长期不活跃的 Issue 和 PR / Auto-mark and close stale Issues and PRs
+﻿# 自动标记并关闭长期不活跃的 Issue 和 PR / Auto-mark and close stale Issues and PRs
 # 60 天无活动 → 标记 stale + 留言；再过 7 天无活动 → 关闭
 # 60 days no activity → mark stale + comment; another 7 days no activity → close
 name: Mark stale issues and pull requests

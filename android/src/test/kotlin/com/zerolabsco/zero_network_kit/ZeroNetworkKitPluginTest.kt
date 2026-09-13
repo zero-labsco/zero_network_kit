@@ -1,4 +1,4 @@
-package com.zerolabsco.zero_network_kit
+﻿package com.zerolabsco.zero_network_kit
 
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel

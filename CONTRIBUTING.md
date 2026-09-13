@@ -1,4 +1,4 @@
-# Contributing to zero_network_kit
+﻿# Contributing to zero_network_kit
 
 Thanks for taking the time to contribute! This document describes the workflow
 we follow. For the full engineering contract — architecture, conventions, release

@@ -1,25 +1,20 @@
-# 强制文本文件使用 LF 行尾，避免 Windows (CRLF) 与 CI (Linux/LF) 的
-# dart format 结果不一致，导致 CI 反复报格式错误。
-# Force LF for text files so `dart format` yields identical results on
-# Windows (CRLF) and CI (Linux/LF), preventing repeated format failures.
+# Normalize every text file to LF on both commit and checkout so the
+# "CRLF will be replaced by LF" warning never appears again.
 * text=auto eol=lf
 
+# Be explicit about the most common source extensions.
 *.dart text eol=lf
-*.yml text eol=lf
 *.yaml text eol=lf
+*.yml text eol=lf
 *.md text eol=lf
 *.json text eol=lf
+*.podspec text eol=lf
 *.toml text eol=lf
 *.gradle text eol=lf
-*.kt text eol=lf
-*.swift text eol=lf
-*.podspec text eol=lf
-
-# 二进制文件不转换 / binary files are left untouched
-*.png binary
-*.jpg binary
-*.jpeg binary
-*.gif binary
-*.webp binary
-*.ico binary
-*.svg text eol=lf
+*.xml text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+*.ts text eol=lf
+*.mjs text eol=lf
+*.map text eol=lf

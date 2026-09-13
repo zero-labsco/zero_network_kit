@@ -1,4 +1,4 @@
-import 'dart:math' as math;
+﻿import 'dart:math' as math;
 
 import '../models/network_quality_score.dart';
 import '../utils/network_config.dart';

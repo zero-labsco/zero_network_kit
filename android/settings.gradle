@@ -1,1 +1,1 @@
-rootProject.name = 'zero_network_kit'
+﻿rootProject.name = 'zero_network_kit'

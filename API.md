@@ -1,4 +1,4 @@
-# API Guide / 接口使用指南
+﻿# API Guide / 接口使用指南
 
 Every public capability of `zero_network_kit`, with copy‑paste ready examples.
 本文件覆盖 `zero_network_kit` 的**全部公开功能**，每个示例都可以直接复制运行。

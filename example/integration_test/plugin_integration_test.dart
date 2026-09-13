@@ -1,4 +1,4 @@
-// 集成测试在真实设备/模拟器上运行，可以访问原生通道与真实网络 /
+﻿// 集成测试在真实设备/模拟器上运行，可以访问原生通道与真实网络 /
 // Integration tests run on a real device or simulator, so they can exercise the
 // platform channel and the real network stack.
 //

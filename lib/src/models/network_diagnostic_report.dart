@@ -1,4 +1,4 @@
-import 'dns_test_result.dart';
+﻿import 'dns_test_result.dart';
 import 'network_connection_info.dart';
 import 'network_quality_score.dart';
 import 'ping_result.dart';

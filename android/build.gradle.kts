@@ -1,4 +1,4 @@
-group = "com.zerolabsco.zero_network_kit"
+﻿group = "com.zerolabsco.zero_network_kit"
 version = "1.0-SNAPSHOT"
 
 buildscript {

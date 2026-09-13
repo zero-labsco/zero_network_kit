@@ -1,4 +1,4 @@
-name: zero_network_kit_example
+﻿name: zero_network_kit_example
 description: "Demonstrates how to use the zero_network_kit plugin."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.

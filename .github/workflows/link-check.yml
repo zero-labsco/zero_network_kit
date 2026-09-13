@@ -1,4 +1,4 @@
-name: Link Check
+﻿name: Link Check
 
 # Scan documentation for dead/broken links using lychee.
 # Only user-facing docs are checked to keep the job fast and avoid false

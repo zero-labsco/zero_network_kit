@@ -1,4 +1,4 @@
-import 'dart:math' as math;
+﻿import 'dart:math' as math;
 
 /// Ping 探测方式 / How the ping probes are performed.
 enum PingMode {

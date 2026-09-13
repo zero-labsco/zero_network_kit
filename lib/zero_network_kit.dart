@@ -1,4 +1,4 @@
-/// Flutter 网络诊断插件 / A Flutter plugin for network diagnostics.
+﻿/// Flutter 网络诊断插件 / A Flutter plugin for network diagnostics.
 ///
 /// 提供连通性检测、延迟探测、DNS 解析、端口检测、带宽测速、质量评分与微基准
 /// 测试能力，全部通过包根 [ZeroNetworkKit] / `NetworkDiagnostic` /
