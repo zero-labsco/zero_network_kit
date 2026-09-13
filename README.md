@@ -21,7 +21,7 @@ micro-benchmarks — for Android, iOS, macOS, Windows and Linux (no Web).
 
 > **🔔 First release:** `zero_network_kit` `1.0.0` is the initial public release, supporting Android, iOS, macOS, Windows and Linux. Web is **not** supported because the plugin relies on `dart:io`. Issues and pull requests are welcome!
 
-🌐 **[Documentation](docs/)** &nbsp;·&nbsp; 📦 **[View on pub.dev](https://pub.dev/packages/zero_network_kit)** &nbsp;·&nbsp; 🔗 **[View on GitHub](https://github.com/zero-labsco/zero_network_kit)**
+🌐 **[Official Website](https://www.zerolabsco.com/)** &nbsp;·&nbsp; 📦 **[View on pub.dev](https://pub.dev/packages/zero_network_kit)** &nbsp;·&nbsp; 🔗 **[View on GitHub](https://github.com/zero-labsco/zero_network_kit)**
 
 ---
 
