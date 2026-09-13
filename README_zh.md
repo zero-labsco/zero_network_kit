@@ -1,6 +1,10 @@
 # zero_network_kit
 
-[English](README.md) | **简体中文**
+<div align="center">
+
+[English](README.md) &nbsp;|&nbsp; **简体中文**
+
+</div>
 
 一个 Flutter **网络诊断**插件：连通性检测、延迟探测、DNS 解析、端口检测、带宽
 测速、质量评分与微基准测试，支持 Android、iOS、macOS、Windows 与 Linux（不支持 Web）。
@@ -13,6 +17,33 @@
 [![Flutter](https://img.shields.io/badge/Flutter-✓-02569B?logo=flutter)](https://flutter.dev)
 [![Dart](https://img.shields.io/badge/Dart-✓-0175C2?logo=dart)](https://dart.dev)
 [![Style: effective dart](https://img.shields.io/badge/style-effective_dart-40c4ff.svg)](https://pub.dev/packages/effective_dart)
+
+> **🔔 首次发布：** `zero_network_kit` `1.0.0` 为首个公开版本，支持 Android、iOS、macOS、Windows 与 Linux；**不支持 Web**（插件依赖 `dart:io`）。欢迎提 issue 与 PR！
+
+🌐 **[文档](docs/)** &nbsp;·&nbsp; 📦 **[在 pub.dev 查看](https://pub.dev/packages/zero_network_kit)** &nbsp;·&nbsp; 🔗 **[GitHub 仓库](https://github.com/zero-labsco/zero_network_kit)**
+
+---
+
+## 目录
+
+- [能力一览](#能力一览)
+- [引入](#引入)
+  - [Android 权限](#android-权限)
+- [用法](#用法)
+  - [连通性](#连通性)
+  - [延迟探测](#延迟探测)
+  - [DNS 解析](#dns-解析)
+  - [网速测试](#网速测试)
+  - [端口检测](#端口检测)
+  - [质量评分](#质量评分)
+  - [汇总报告](#汇总报告)
+  - [基准测试](#基准测试)
+- [在你自己的代码里做测试](#在你自己的代码里做测试)
+- [平台支持](#平台支持)
+- [文档](#文档)
+- [许可证](#许可证)
+
+---
 
 ## 能力一览
 
@@ -223,9 +254,14 @@ NetworkDiagnostic.configure(
 
 | 平台 | 状态 |
 | --- | --- |
-| Android | 支持（Kotlin 原生实现） |
-| iOS | 支持（Swift 原生实现） |
-| 桌面 / Web | 未声明为插件平台。纯 Dart 服务在桌面端可编译，但不属于受支持矩阵。 |
+| Android | ✅ 支持（Kotlin 原生实现） |
+| iOS | ✅ 支持（Swift 原生实现） |
+| macOS | ✅ 支持（Swift 原生实现） |
+| Windows | ✅ 支持（C++ 原生实现） |
+| Linux | ✅ 支持（C++ 原生实现） |
+| Web | ❌ 不支持——插件使用 `dart:io`，无法编译到 Web。 |
+
+> 纯 Dart 服务可在桌面端编译，但仅有以上五个平台属于官方受支持矩阵。
 
 ## 文档
 

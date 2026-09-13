@@ -1,6 +1,10 @@
 # zero_network_kit
 
-**English** | [简体中文](README_zh.md)
+<div align="center">
+
+**English** &nbsp;|&nbsp; [简体中文](README_zh.md)
+
+</div>
 
 A Flutter plugin for **network diagnostics**: connectivity inspection, latency
 probing, DNS resolution, port checks, bandwidth measurement, quality scoring and
@@ -14,6 +18,33 @@ micro-benchmarks — for Android, iOS, macOS, Windows and Linux (no Web).
 [![Flutter](https://img.shields.io/badge/Flutter-✓-02569B?logo=flutter)](https://flutter.dev)
 [![Dart](https://img.shields.io/badge/Dart-✓-0175C2?logo=dart)](https://dart.dev)
 [![Style: effective dart](https://img.shields.io/badge/style-effective_dart-40c4ff.svg)](https://pub.dev/packages/effective_dart)
+
+> **🔔 First release:** `zero_network_kit` `1.0.0` is the initial public release, supporting Android, iOS, macOS, Windows and Linux. Web is **not** supported because the plugin relies on `dart:io`. Issues and pull requests are welcome!
+
+🌐 **[Documentation](docs/)** &nbsp;·&nbsp; 📦 **[View on pub.dev](https://pub.dev/packages/zero_network_kit)** &nbsp;·&nbsp; 🔗 **[View on GitHub](https://github.com/zero-labsco/zero_network_kit)**
+
+---
+
+## Table of Contents
+
+- [Features](#features)
+- [Getting started](#getting-started)
+  - [Android permissions](#android-permissions)
+- [Usage](#usage)
+  - [Connectivity](#connectivity)
+  - [Ping](#ping)
+  - [DNS](#dns)
+  - [Speed test](#speed-test)
+  - [Ports](#ports)
+  - [Quality score](#quality-score)
+  - [Full report](#full-report)
+  - [Benchmarks](#benchmarks)
+- [Testing your own code against it](#testing-your-own-code-against-it)
+- [Platform support](#platform-support)
+- [Documentation](#documentation)
+- [License](#license)
+
+---
 
 ## Features
 
@@ -230,9 +261,15 @@ NetworkDiagnostic.configure(
 
 | Platform | Status |
 | --- | --- |
-| Android | Supported (Kotlin native side) |
-| iOS | Supported (Swift native side) |
-| Desktop / Web | Not declared as plugin platforms. The pure-Dart services compile on desktop, but they are not part of the supported matrix. |
+| Android | ✅ Supported (Kotlin native side) |
+| iOS | ✅ Supported (Swift native side) |
+| macOS | ✅ Supported (Swift native side) |
+| Windows | ✅ Supported (C++ native side) |
+| Linux | ✅ Supported (C++ native side) |
+| Web | ❌ Not supported — the plugin uses `dart:io`, which does not compile to Web. |
+
+> The pure-Dart services can be compiled on desktop, but only the five platforms
+> above are part of the officially supported matrix.
 
 ## Documentation
 
