@@ -18,7 +18,7 @@
 [![Dart](https://img.shields.io/badge/Dart-✓-0175C2?logo=dart)](https://dart.dev)
 [![Style: effective dart](https://img.shields.io/badge/style-effective_dart-40c4ff.svg)](https://pub.dev/packages/effective_dart)
 
-> **🔔 推荐升级：** `1.0.1` 新增 Web 平台部分支持——插件现已可在浏览器中编译运行，浏览器沙箱禁止的能力会优雅降级而不会报错；同时修复了 Web 端测速失败的问题。建议升级到 `^1.0.1`。
+> **🔔 推荐升级：** `1.0.2` 为 iOS 与 macOS 新增 Swift Package Manager 支持，插件因此同样适用于已从 CocoaPods 迁移走的工程。建议升级到 `^1.0.2`。
 
 🌐 **[官方网站](https://www.zerolabsco.com/)** &nbsp;·&nbsp; 📦 **[在 pub.dev 查看](https://pub.dev/packages/zero_network_kit)** &nbsp;·&nbsp; 🔗 **[查看 GitHub 仓库](https://github.com/zero-labsco/zero_network_kit)**
 
@@ -72,7 +72,7 @@
 
 ```yaml
 dependencies:
-  zero_network_kit: ^1.0.1
+  zero_network_kit: ^1.0.2
 ```
 
 ### Android 权限

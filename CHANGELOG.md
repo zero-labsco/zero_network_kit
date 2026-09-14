@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.0.2
+
+### Added / 新增
+
+- **Swift Package Manager support** — iOS and macOS now ship a `Package.swift`
+  next to the CocoaPods podspec, so the plugin keeps working in projects that
+  have migrated to SwiftPM. Native sources moved to
+  `<platform>/zero_network_kit/Sources/zero_network_kit/`.
+  - **支持 Swift Package Manager**——iOS 与 macOS 在 CocoaPods podspec 之外新增
+    `Package.swift`，使插件在已迁移 SwiftPM 的工程中同样可用。原生源码移至
+    `<platform>/zero_network_kit/Sources/zero_network_kit/`。
+
+### Fixed / 修复
+
+- **Package description** — the pub.dev description still advertised only five
+  platforms after Web support shipped; it now lists all six.
+  - **包描述**——Web 支持上线后，pub.dev 上的描述仍只宣传五个平台，现已列出全部六个。
+- **podspec metadata** — replaced the leftover macOS template values (placeholder
+  summary, `example.com` homepage, `Your Company` author) and the iOS author with
+  the real project metadata, and enabled the privacy manifest resource bundle on
+  both platforms.
+  - **podspec 元信息**——把 macOS 残留的模板值（占位 summary、`example.com` 主页、
+    `Your Company` 作者）与 iOS 的作者替换为真实项目信息，并在两个平台启用隐私清单资源包。
+
 ## 1.0.1
 
 ### Added / 新增

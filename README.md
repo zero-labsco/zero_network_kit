@@ -19,7 +19,7 @@ micro-benchmarks — for Android, iOS, macOS, Windows, Linux and Web (partial).
 [![Dart](https://img.shields.io/badge/Dart-✓-0175C2?logo=dart)](https://dart.dev)
 [![Style: effective dart](https://img.shields.io/badge/style-effective_dart-40c4ff.svg)](https://pub.dev/packages/effective_dart)
 
-> **🔔 Upgrade recommended:** `1.0.1` adds partial Web support — the plugin now compiles and runs in the browser, and the capabilities the sandbox forbids degrade gracefully instead of failing. It also fixes the speed test on the web. Upgrade to `^1.0.1`.
+> **🔔 Upgrade recommended:** `1.0.2` adds Swift Package Manager support for iOS and macOS, so the plugin also works in projects that have migrated away from CocoaPods. Upgrade to `^1.0.2`.
 
 🌐 **[Official Website](https://www.zerolabsco.com/)** &nbsp;·&nbsp; 📦 **[View on pub.dev](https://pub.dev/packages/zero_network_kit)** &nbsp;·&nbsp; 🔗 **[View on GitHub](https://github.com/zero-labsco/zero_network_kit)**
 
@@ -74,7 +74,7 @@ Design goals:
 
 ```yaml
 dependencies:
-  zero_network_kit: ^1.0.1
+  zero_network_kit: ^1.0.2
 ```
 
 ### Android permissions

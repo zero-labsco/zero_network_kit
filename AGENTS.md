@@ -26,7 +26,7 @@ This file defines the architecture, coding conventions, and required workflows f
   - DNS uses the system resolver and/or raw UDP queries against explicit servers, encoded/decoded by the pure-Dart `DnsPacket` wire-format codec.
   - Speed test streams download/upload traffic against configurable endpoints with `SpeedTestProgress` callbacks.
   - Quality scoring is a pure function (`NetworkQualityEvaluator`) over the available metrics; `QualityService` gathers them.
-- Native: Android `android/src/main/kotlin/com/zerolabsco/zero_network_kit/ZeroNetworkKitPlugin.kt` (package `com.zerolabsco.zero_network_kit`); iOS `ios/Classes/ZeroNetworkKitPlugin.swift`. The native side only supplements what the system requires; keep changes minimal and matching the method channel contract.
+- Native: Android `android/src/main/kotlin/com/zerolabsco/zero_network_kit/ZeroNetworkKitPlugin.kt` (package `com.zerolabsco.zero_network_kit`); iOS `ios/zero_network_kit/Sources/zero_network_kit/ZeroNetworkKitPlugin.swift`; macOS `macos/zero_network_kit/Sources/zero_network_kit/ZeroNetworkKitPlugin.swift`. iOS and macOS are dual-distributed: a CocoaPods podspec (`ios|macos/zero_network_kit.podspec`, sources under `zero_network_kit/Sources/…`) **and** a Swift Package (`ios|macos/zero_network_kit/Package.swift`). Do not move or rename `Sources/zero_network_kit/` without updating both, plus each podspec's `source_files` / `resource_bundles`. The native side only supplements what the system requires; keep changes minimal and matching the method channel contract.
 
 ## Dependencies and SDK constraints
 - Dart SDK: `>=3.11.0 <4.0.0`; Flutter: `>=3.3.0` (from `pubspec.yaml`). CI pins Flutter `3.41.7` so `dart format` output is identical everywhere.
