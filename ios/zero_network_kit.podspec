@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'zero_network_kit'
-  s.version          = '1.0.1'
+  s.version          = '1.0.2'
   s.summary          = 'Flutter network diagnostics: ping, DNS, speed test, port scan and quality score.'
   s.description      = <<-DESC
 A Flutter plugin for network diagnostics: connectivity check, ping, DNS
@@ -12,9 +12,10 @@ resolution, speed test, port scanning, quality scoring and micro-benchmarks.
                        DESC
   s.homepage         = 'https://github.com/zero-labsco/zero_network_kit'
   s.license          = { :file => '../LICENSE' }
-  s.author           = { 'Zero Labs' => 'dev@zerolabsco.com' }
+  s.author           = { 'AmisKwok' => 'amiskwok@zerolabsco.com' }
   s.source           = { :path => '.' }
-  s.source_files     = 'Classes/**/*'
+  s.source_files     = 'zero_network_kit/Sources/zero_network_kit/**/*.swift'
+  s.resource_bundles = { 'zero_network_kit_privacy' => ['zero_network_kit/Sources/zero_network_kit/PrivacyInfo.xcprivacy'] }
   s.dependency 'Flutter'
   s.platform = :ios, '13.0'
 
