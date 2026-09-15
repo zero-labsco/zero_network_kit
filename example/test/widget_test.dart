@@ -24,11 +24,16 @@ void main() {
         .setMockMethodCallHandler(channel, null);
   });
 
-  testWidgets('renders the diagnostic dashboard', (tester) async {
+  testWidgets('renders the full diagnostic dashboard', (tester) async {
+    // Give the ListView a tall viewport so every probe card is built and
+    // asserted (ListView builds children lazily, below the fold by default).
+    tester.view
+      ..physicalSize = const Size(800, 2000)
+      ..devicePixelRatio = 1;
+
     await tester.pumpWidget(const ZeroNetworkKitExampleApp());
     await tester.pumpAndSettle();
 
-    // App bar title and each probe's "Run" action card are present.
     expect(find.text('Zero Network Kit'), findsWidgets);
     expect(find.widgetWithText(FilledButton, 'Run'), findsWidgets);
 
@@ -42,6 +47,10 @@ void main() {
   });
 
   testWidgets('shows the platform version once resolved', (tester) async {
+    tester.view
+      ..physicalSize = const Size(800, 2000)
+      ..devicePixelRatio = 1;
+
     await tester.pumpWidget(const ZeroNetworkKitExampleApp());
     await tester.pumpAndSettle();
     expect(find.textContaining('platform:'), findsOneWidget);
