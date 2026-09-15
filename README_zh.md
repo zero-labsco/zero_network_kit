@@ -18,7 +18,7 @@
 [![Dart](https://img.shields.io/badge/Dart-✓-0175C2?logo=dart)](https://dart.dev)
 [![Style: effective dart](https://img.shields.io/badge/style-effective_dart-40c4ff.svg)](https://pub.dev/packages/effective_dart)
 
-> **🔔 推荐升级：** `1.0.2` 为 iOS 与 macOS 新增 Swift Package Manager 支持，插件因此同样适用于已从 CocoaPods 迁移走的工程。建议升级到 `^1.0.2`。
+> **🔔 推荐升级：** `1.0.3` 让包具备 WASM 兼容性——Web 构建不再引入 `connectivity_plus` 仅限 Linux 的 `nm` 依赖，因此 `flutter build web --wasm` 与 pub.dev 的平台评分（20/20）均可通过。建议升级到 `^1.0.3`。
 
 🌐 **[官方网站](https://www.zerolabsco.com/)** &nbsp;·&nbsp; 📦 **[在 pub.dev 查看](https://pub.dev/packages/zero_network_kit)** &nbsp;·&nbsp; 🔗 **[查看 GitHub 仓库](https://github.com/zero-labsco/zero_network_kit)**
 
@@ -72,7 +72,7 @@
 
 ```yaml
 dependencies:
-  zero_network_kit: ^1.0.2
+  zero_network_kit: ^1.0.3
 ```
 
 ### Android 权限

@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:http/http.dart' as http;
+import 'package:web/web.dart' show Event, EventStreamProvider, window;
 
 import '../../zero_network_kit_platform_interface.dart';
 import '../models/network_connection_info.dart';
@@ -9,8 +9,9 @@ import '../models/network_type.dart';
 
 /// 连接类型数据源抽象 / Abstraction over the platform connectivity source.
 ///
-/// 默认由 `connectivity_plus` 实现，单元测试可注入假实现 /
-/// Implemented by `connectivity_plus` by default; unit tests can inject fakes.
+/// Web 端默认由 `package:web`（浏览器 `navigator.onLine`）实现，单元测试可注入假实现 /
+/// On the web it is backed by `package:web` (the browser's `navigator.onLine`) by
+/// default; unit tests can inject fakes.
 abstract class ConnectivityAdapter {
   /// 读取当前连接类型（如 `['wifi']`）/ Reads the current transports, e.g.
   /// `['wifi']`.
@@ -20,27 +21,38 @@ abstract class ConnectivityAdapter {
   Stream<List<String>> get onConnectivityChanged;
 }
 
-/// 基于 `connectivity_plus` 的默认适配器 /
-/// Default adapter backed by `connectivity_plus`.
-class ConnectivityPlusAdapter implements ConnectivityAdapter {
-  /// 构造 [ConnectivityPlusAdapter] / Creates a [ConnectivityPlusAdapter].
-  ConnectivityPlusAdapter([Connectivity? connectivity])
-    : _connectivity = connectivity ?? Connectivity();
-
-  final Connectivity _connectivity;
+/// 基于浏览器 `navigator.onLine` 的 Web 连通性适配器 /
+/// Web connectivity adapter backed by the browser's `navigator.onLine`.
+///
+/// 浏览器无法区分 Wi-Fi / 蜂窝等具体传输类型，仅能判断「在线 / 离线」，因此在线时
+/// 返回 `['wifi']`、离线时返回 `['none']` /
+/// Browsers cannot tell Wi-Fi from cellular; they only report online / offline, so
+/// the adapter emits `['wifi']` when online and `['none']` when offline.
+///
+/// 直接基于 `package:web` 实现，避免把 `connectivity_plus` 引入 Web 依赖图，从而保证
+/// 包对 WebAssembly（WASM）编译友好 / Implemented directly on top of `package:web`
+/// instead of `connectivity_plus` so the package stays WASM-compatible (the plugin's
+/// Linux-only `nm` dependency would otherwise leak into the web import graph).
+class WebConnectivityAdapter implements ConnectivityAdapter {
+  /// 构造 [WebConnectivityAdapter] / Creates a [WebConnectivityAdapter].
+  WebConnectivityAdapter();
 
   @override
   Future<List<String>> checkConnectivity() async {
-    final results = await _connectivity.checkConnectivity();
-    return _names(results);
+    return window.navigator.onLine ? const ['wifi'] : const ['none'];
   }
 
   @override
-  Stream<List<String>> get onConnectivityChanged =>
-      _connectivity.onConnectivityChanged.map(_names);
-
-  List<String> _names(List<ConnectivityResult> results) =>
-      results.map((result) => result.name).toList(growable: false);
+  Stream<List<String>> get onConnectivityChanged {
+    final controller = StreamController<List<String>>.broadcast();
+    EventStreamProvider<Event>(
+      'online',
+    ).forTarget(window).listen((_) => controller.add(const ['wifi']));
+    EventStreamProvider<Event>(
+      'offline',
+    ).forTarget(window).listen((_) => controller.add(const ['none']));
+    return controller.stream;
+  }
 }
 
 /// Web 端连通性检测与网络信息采集服务 /
@@ -54,7 +66,7 @@ class ConnectivityPlusAdapter implements ConnectivityAdapter {
 class ConnectivityService {
   /// 构造 [ConnectivityService] / Creates a [ConnectivityService].
   ConnectivityService({ConnectivityAdapter? adapter})
-    : _adapter = adapter ?? ConnectivityPlusAdapter();
+    : _adapter = adapter ?? WebConnectivityAdapter();
 
   final ConnectivityAdapter _adapter;
 

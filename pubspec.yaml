@@ -1,6 +1,6 @@
 name: zero_network_kit
 description: "Network diagnostics toolkit for Flutter: connectivity, ping, DNS, speed test, port scan and quality scoring across Android, iOS, macOS, Windows, Linux and Web."
-version: 1.0.2
+version: 1.0.3
 topics:
   - network
   - diagnostics
@@ -25,6 +25,7 @@ dependencies:
   plugin_platform_interface: ^2.1.8
   connectivity_plus: ^7.0.0
   http: ^1.2.1
+  web: ^1.0.0
   flutter_web_plugins:
     sdk: flutter
 

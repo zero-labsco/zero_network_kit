@@ -1,19 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zero_network_kit_example/main.dart';
 
 void main() {
-  testWidgets('renders the diagnostic dashboard', (tester) async {
-    // 放大测试视口，让懒加载的 ListView 构建出全部卡片 /
-    // Enlarge the viewport so the lazy ListView builds every card.
-    tester.view.physicalSize = const Size(1080, 3000);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.reset);
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  // The example app resolves the platform version through the `zero_network_kit`
+  // method channel. Stub it so the dashboard builds deterministically in a
+  // headless test environment where no native side is attached.
+  const channel = MethodChannel('zero_network_kit');
+
+  setUp(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          if (call.method == 'getPlatformVersion') return 'Test';
+          return null;
+        });
+  });
+
+  tearDown(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, null);
+  });
+
+  testWidgets('renders the full diagnostic dashboard', (tester) async {
+    // Give the ListView a tall viewport so every probe card is built and
+    // asserted (ListView builds children lazily, below the fold by default).
+    tester.view
+      ..physicalSize = const Size(800, 2000)
+      ..devicePixelRatio = 1;
 
     await tester.pumpWidget(const ZeroNetworkKitExampleApp());
-    await tester.pump();
+    await tester.pumpAndSettle();
 
-    expect(find.text('Zero Network Kit'), findsOneWidget);
+    expect(find.text('Zero Network Kit'), findsWidgets);
+    expect(find.widgetWithText(FilledButton, 'Run'), findsWidgets);
+
     expect(find.text('Connection'), findsOneWidget);
     expect(find.text('Ping'), findsOneWidget);
     expect(find.text('DNS'), findsOneWidget);
@@ -21,6 +44,15 @@ void main() {
     expect(find.text('Quality score'), findsOneWidget);
     expect(find.text('Full diagnostic'), findsOneWidget);
     expect(find.text('Benchmark the API'), findsOneWidget);
-    expect(find.text('Run'), findsWidgets);
+  });
+
+  testWidgets('shows the platform version once resolved', (tester) async {
+    tester.view
+      ..physicalSize = const Size(800, 2000)
+      ..devicePixelRatio = 1;
+
+    await tester.pumpWidget(const ZeroNetworkKitExampleApp());
+    await tester.pumpAndSettle();
+    expect(find.textContaining('platform:'), findsOneWidget);
   });
 }
