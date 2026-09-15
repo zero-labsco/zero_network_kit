@@ -1,7 +1,7 @@
 // 网络延迟（Ping）测试服务 / Network latency (ping) test service.
 //
-// 依据平台条件导出实现：原生平台使用 `dart:io`（TCP/ICMP）版本，Web 使用基于
-// HTTPS 往返的退化版本 / Conditionally exports the implementation: the native
-// build uses the `dart:io` (TCP/ICMP) variant, while the web build uses the
-// HTTPS round-trip fallback.
-export 'ping_service_io.dart' if (dart.library.html) 'ping_service_web.dart';
+// 依据平台条件导出实现：默认导出不含 `dart:io` 的 Web 版本，仅在 `dart:io`
+// 可用时改为原生版本 / Conditionally exports the implementation: the
+// `dart:io`-free web variant is the default, and the native `dart:io` (TCP/ICMP)
+// variant is selected only when `dart:io` is available.
+export 'ping_service_web.dart' if (dart.library.io) 'ping_service_io.dart';

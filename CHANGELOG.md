@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.0.4
+
+### Fixed / 修复
+
+- **Web/WASM build** — the platform-specific implementations are now selected by
+  gating the `dart:io` variants behind `dart.library.io`, using the browser-based
+  variants as the fallback. Previously the conditional exports defaulted to the
+  `dart:io` variants, so an environment that does not define `dart.library.html`
+  still resolved them and pulled `dart:io` into the Web build. Runtime behaviour
+  is unchanged on every supported platform: native still uses the `dart:io`
+  variants, the Web still uses the browser-based ones.
+  - **Web/WASM 构建**——各平台实现改为按 `dart.library.io` 条件引入原生版本，并以
+    浏览器版本作为兜底。此前条件导出默认使用 `dart:io` 版本，未定义
+    `dart.library.html` 的环境仍会解析到它们，从而把 `dart:io` 带入 Web 构建。
+    各平台运行时行为不变：原生仍使用 `dart:io` 版本，Web 仍使用基于浏览器的版本。
+
 ## 1.0.3
 
 ### Fixed / 修复
