@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.0.3
+
+### Fixed / 修复
+
+- **WASM compatibility** — the web connectivity implementation no longer imports
+  `connectivity_plus` (whose non-web default branch pulls in the Linux-only `nm`
+  package). It now talks to the browser directly through `package:web`
+  (`navigator.onLine` plus the `online` / `offline` events), so the package scores
+  full marks (20/20) on pub.dev's platform-support check and compiles with
+  `flutter build web --wasm`. `connectivity_plus` is still used on native platforms.
+  - **WASM 兼容性**——Web 端连通性实现不再导入 `connectivity_plus`（其非 Web 默认分支会引入仅限
+    Linux 的 `nm` 包），改为通过 `package:web`（`navigator.onLine` 与 `online` / `offline`
+    事件）直接与浏览器交互。包在 pub.dev 平台支持项中得满分（20/20），且可用
+    `flutter build web --wasm` 编译。`connectivity_plus` 在原生平台仍继续使用。
+
 ## 1.0.2
 
 ### Added / 新增

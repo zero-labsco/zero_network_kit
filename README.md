@@ -19,7 +19,7 @@ micro-benchmarks — for Android, iOS, macOS, Windows, Linux and Web (partial).
 [![Dart](https://img.shields.io/badge/Dart-✓-0175C2?logo=dart)](https://dart.dev)
 [![Style: effective dart](https://img.shields.io/badge/style-effective_dart-40c4ff.svg)](https://pub.dev/packages/effective_dart)
 
-> **🔔 Upgrade recommended:** `1.0.2` adds Swift Package Manager support for iOS and macOS, so the plugin also works in projects that have migrated away from CocoaPods. Upgrade to `^1.0.2`.
+> **🔔 Upgrade recommended:** `1.0.3` makes the package WASM-compatible — the web build no longer pulls in `connectivity_plus`'s Linux-only `nm` dependency, so `flutter build web --wasm` and pub.dev's platform score (20/20) both pass. Upgrade to `^1.0.3`.
 
 🌐 **[Official Website](https://www.zerolabsco.com/)** &nbsp;·&nbsp; 📦 **[View on pub.dev](https://pub.dev/packages/zero_network_kit)** &nbsp;·&nbsp; 🔗 **[View on GitHub](https://github.com/zero-labsco/zero_network_kit)**
 
@@ -74,7 +74,7 @@ Design goals:
 
 ```yaml
 dependencies:
-  zero_network_kit: ^1.0.2
+  zero_network_kit: ^1.0.3
 ```
 
 ### Android permissions

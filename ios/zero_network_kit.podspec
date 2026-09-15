@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'zero_network_kit'
-  s.version          = '1.0.2'
+  s.version          = '1.0.3'
   s.summary          = 'Flutter network diagnostics: ping, DNS, speed test, port scan and quality score.'
   s.description      = <<-DESC
 A Flutter plugin for network diagnostics: connectivity check, ping, DNS
