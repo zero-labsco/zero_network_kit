@@ -1,5 +1,34 @@
 # Changelog
 
+## 1.0.5
+
+### Fixed / 修复
+
+- **Upload speed measurement** — the upload duration now stops as soon as the
+  request body is fully sent, so the server's response download no longer
+  inflates the measured upload throughput (and the reported `SpeedTestProgress`
+  value stays consistent with the final result).
+  - **上传速率测量**——上传耗时改为在请求体完全发出时即停止，服务器回包下载时间不再计入，上传速率与进度回调数值保持一致。
+- **Web connectivity listener leak** — `WebConnectivityAdapter.onConnectivityChanged`
+  now attaches the `online` / `offline` browser listeners on the first
+  subscription and detaches them on the last cancellation, so repeated
+  subscriptions no longer accumulate global event listeners.
+  - **Web 连通性监听泄漏**——`WebConnectivityAdapter.onConnectivityChanged` 改为首次订阅时挂载、末次取消时移除浏览器的 `online` / `offline` 监听，反复订阅不再累积全局监听。
+- **Web DNS DoH contract** — an explicit DNS server with no known DoH endpoint now
+  returns the documented "unsupported" result instead of probing an arbitrary
+  `https://<server>/dns-query` URL.
+  - **Web 端 DNS DoH 契约**——对没有已知 DoH 端点的显式 DNS 服务器，现在按文档返回"不支持"结果，而非去请求一个未必提供 DoH 的 `https://<server>/dns-query` 地址。
+- **Web ping RTT** — the TCP-probe ping on the web stops the timer at the response
+  headers, so a large response body no longer inflates the reported latency.
+  - **Web 端 Ping RTT**——Web 端的 TCP 探测 ping 在收到响应头即停表，响应体大小不再抬高测得的延迟。
+
+### Added / 新增
+
+- **IPv6 DNS resolution** — the raw-UDP resolver now sends both A and AAAA
+  queries and binds a wildcard socket that matches the target server's address
+  family, so IPv6 answers are resolved too (previously only IPv4).
+  - **IPv6 DNS 解析**——原始 UDP 解析器现在同时发送 A 与 AAAA 查询，并按目标服务器地址族绑定通配套接字，从而也能解析出 IPv6 地址（此前仅限 IPv4）。
+
 ## 1.0.4
 
 ### Fixed / 修复

@@ -113,7 +113,11 @@ class DnsService {
       case '8.8.4.4':
         return 'https://dns.google/dns-query';
       default:
-        return 'https://$server/dns-query';
+        // 文档约定：无已知 DoH 端点的服务器返回「不支持」，而非去尝试一个未必提供
+        // DoH 的 HTTPS 地址 / Per the documented contract, servers without a known
+        // DoH endpoint are reported as unsupported instead of probing an arbitrary
+        // HTTPS URL that likely has no DoH.
+        return null;
     }
   }
 

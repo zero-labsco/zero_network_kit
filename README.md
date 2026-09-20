@@ -19,7 +19,7 @@ micro-benchmarks — for Android, iOS, macOS, Windows, Linux and Web (partial).
 [![Dart](https://img.shields.io/badge/Dart-✓-0175C2?logo=dart)](https://dart.dev)
 [![Style: effective dart](https://img.shields.io/badge/style-effective_dart-40c4ff.svg)](https://pub.dev/packages/effective_dart)
 
-> **🔔 Upgrade recommended:** `1.0.4` removes the remaining `dart:io` imports from the Web build — the platform variants are now selected by gating the `dart:io` implementations behind `dart.library.io`, so the Web build resolves to the browser-based implementations and compiles with `flutter build web --wasm`. Upgrade to `^1.0.4`.
+> **🔔 Upgrade recommended:** `1.0.5` fixes the upload-speed measurement (no longer inflated by the server response), stops a Web connectivity listener leak, aligns the Web DNS DoH contract with its docs, and adds IPv6 (AAAA) to the raw-UDP resolver. Upgrade to `^1.0.5`.
 
 🌐 **[Official Website](https://www.zerolabsco.com/)** &nbsp;·&nbsp; 📦 **[View on pub.dev](https://pub.dev/packages/zero_network_kit)** &nbsp;·&nbsp; 🔗 **[View on GitHub](https://github.com/zero-labsco/zero_network_kit)**
 
@@ -74,7 +74,7 @@ Design goals:
 
 ```yaml
 dependencies:
-  zero_network_kit: ^1.0.4
+  zero_network_kit: ^1.0.5
 ```
 
 ### Android permissions

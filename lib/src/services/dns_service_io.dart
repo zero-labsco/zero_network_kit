@@ -124,11 +124,36 @@ class DnsService {
 
     try {
       final target = await _resolveServer(server).timeout(timeout);
-      socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
+      // 依据目标地址族绑定对应通配套接字，IPv6 服务器也能正常收发 /
+      // Bind a wildcard socket that matches the target's address family so an
+      // IPv6 server is reachable too.
+      final bindAddress = target.type == InternetAddressType.IPv6
+          ? InternetAddress.anyIPv6
+          : InternetAddress.anyIPv4;
+      socket = await RawDatagramSocket.bind(bindAddress, 0);
       final udp = socket;
-      final id = DnsPacket.randomId();
-      final payload = DnsPacket.encodeQuery(domain, id: id);
-      final completer = Completer<DnsResponse>();
+
+      final aId = DnsPacket.randomId();
+      final aaaaId = (aId ^ 0x8000) & 0xFFFF;
+      final aPayload = DnsPacket.encodeQuery(
+        domain,
+        id: aId,
+        type: DnsRecordType.a,
+      );
+      final aaaaPayload = DnsPacket.encodeQuery(
+        domain,
+        id: aaaaId,
+        type: DnsRecordType.aaaa,
+      );
+
+      final addresses = <String>[];
+      final completer = Completer<void>();
+      var aDone = false;
+      var aaaaDone = false;
+
+      void maybeComplete() {
+        if (aDone && aaaaDone && !completer.isCompleted) completer.complete();
+      }
 
       subscription = udp.listen(
         (event) {
@@ -137,10 +162,21 @@ class DnsService {
           if (datagram == null) return;
           try {
             final response = DnsPacket.parse(datagram.data);
-            if (response.id != id) return;
-            if (!completer.isCompleted) completer.complete(response);
-          } catch (error) {
-            if (!completer.isCompleted) completer.completeError(error);
+            if (response.id == aId) {
+              if (response.responseCode == 0) {
+                addresses.addAll(response.addresses);
+              }
+              aDone = true;
+              maybeComplete();
+            } else if (response.id == aaaaId) {
+              if (response.responseCode == 0) {
+                addresses.addAll(response.addresses);
+              }
+              aaaaDone = true;
+              maybeComplete();
+            }
+          } catch (_) {
+            // 忽略无法解析的报文 / Ignore undecodable datagrams.
           }
         },
         onError: (Object error, StackTrace stackTrace) {
@@ -151,45 +187,25 @@ class DnsService {
       );
 
       timer = Timer(timeout, () {
-        if (!completer.isCompleted) {
-          completer.completeError(
-            TimeoutException('DNS query to $server timed out', timeout),
-          );
-        }
+        if (!completer.isCompleted) completer.complete();
       });
 
-      udp.send(payload, target, 53);
+      udp.send(aPayload, target, 53);
+      udp.send(aaaaPayload, target, 53);
 
-      final response = await completer.future.timeout(
-        timeout,
-        onTimeout: () =>
-            throw TimeoutException('DNS query to $server timed out', timeout),
-      );
+      await completer.future;
       stopwatch.stop();
 
-      if (response.responseCode != 0) {
-        return DnsTestResult(
-          server: server,
-          domain: domain,
-          isSuccess: false,
-          responseTime: stopwatch.elapsed,
-          errorMessage: 'DNS server returned RCODE ${response.responseCode}',
-          timestamp: DateTime.now(),
-        );
-      }
-
+      final uniqueAddresses = addresses.toSet().toList(growable: false);
+      final success = uniqueAddresses.isNotEmpty;
       return DnsTestResult(
         server: server,
         domain: domain,
-        isSuccess: response.isSuccess,
+        isSuccess: success,
         responseTime: stopwatch.elapsed,
-        resolvedIps: response.addresses,
+        resolvedIps: uniqueAddresses,
         timestamp: DateTime.now(),
-        errorMessage: response.isSuccess
-            ? null
-            : (response.truncated
-                  ? 'Response truncated; retry over TCP'
-                  : 'No A/AAAA record in the answer section'),
+        errorMessage: success ? null : 'No A/AAAA record in the answer section',
       );
     } catch (error) {
       stopwatch.stop();
