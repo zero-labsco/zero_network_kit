@@ -45,12 +45,31 @@ class WebConnectivityAdapter implements ConnectivityAdapter {
   @override
   Stream<List<String>> get onConnectivityChanged {
     final controller = StreamController<List<String>>.broadcast();
-    EventStreamProvider<Event>(
-      'online',
-    ).forTarget(window).listen((_) => controller.add(const ['wifi']));
-    EventStreamProvider<Event>(
-      'offline',
-    ).forTarget(window).listen((_) => controller.add(const ['none']));
+    StreamSubscription<Event>? onlineSub;
+    StreamSubscription<Event>? offlineSub;
+
+    void attach() {
+      onlineSub ??= EventStreamProvider<Event>(
+        'online',
+      ).forTarget(window).listen((_) => controller.add(const ['wifi']));
+      offlineSub ??= EventStreamProvider<Event>(
+        'offline',
+      ).forTarget(window).listen((_) => controller.add(const ['none']));
+    }
+
+    void detach() {
+      onlineSub?.cancel();
+      offlineSub?.cancel();
+      onlineSub = null;
+      offlineSub = null;
+    }
+
+    // 首次订阅时挂载浏览器事件监听，最后一次取消时移除，避免反复订阅导致全局
+    // 监听累积（泄漏）/ Attach the browser listeners on the first subscription and
+    // detach them on the last cancellation so repeated subscriptions don't leak
+    // global event listeners.
+    controller.onListen = attach;
+    controller.onCancel = detach;
     return controller.stream;
   }
 }

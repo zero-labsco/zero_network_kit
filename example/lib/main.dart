@@ -105,10 +105,13 @@ class _DiagnosticHomePageState extends State<DiagnosticHomePage> {
             title: 'Connection',
             description:
                 'Transport type, IP, gateway and VPN (SSID / signal on mobile)',
-            onPressed: () => _run('connection', () async {
-              final info = await NetworkDiagnostic.checkConnection();
-              setState(() => _connection = info);
-            }),
+            onPressed: _busyLabel != null
+                ? null
+                : () => _run('connection', () async {
+                    final info = await NetworkDiagnostic.checkConnection();
+                    if (!mounted) return;
+                    setState(() => _connection = info);
+                  }),
             body: _connection == null
                 ? null
                 : _KeyValueList(
@@ -134,10 +137,13 @@ class _DiagnosticHomePageState extends State<DiagnosticHomePage> {
           _ActionCard(
             title: 'Ping',
             description: 'TCP handshake round trip towards 1.1.1.1',
-            onPressed: () => _run('ping', () async {
-              final result = await NetworkDiagnostic.ping(count: 5);
-              setState(() => _ping = result);
-            }),
+            onPressed: _busyLabel != null
+                ? null
+                : () => _run('ping', () async {
+                    final result = await NetworkDiagnostic.ping(count: 5);
+                    if (!mounted) return;
+                    setState(() => _ping = result);
+                  }),
             body: _ping == null
                 ? null
                 : _KeyValueList(
@@ -156,12 +162,15 @@ class _DiagnosticHomePageState extends State<DiagnosticHomePage> {
           _ActionCard(
             title: 'DNS',
             description: 'Raw UDP queries against public resolvers',
-            onPressed: () => _run('dns', () async {
-              final results = await NetworkDiagnostic.resolve(
-                includeSystemResolver: true,
-              );
-              setState(() => _dns = results);
-            }),
+            onPressed: _busyLabel != null
+                ? null
+                : () => _run('dns', () async {
+                    final results = await NetworkDiagnostic.resolve(
+                      includeSystemResolver: true,
+                    );
+                    if (!mounted) return;
+                    setState(() => _dns = results);
+                  }),
             body: _dns.isEmpty
                 ? null
                 : _KeyValueList(
@@ -176,10 +185,13 @@ class _DiagnosticHomePageState extends State<DiagnosticHomePage> {
           _ActionCard(
             title: 'Speed test',
             description: 'Download/upload throughput and latency',
-            onPressed: () => _run('speed', () async {
-              final result = await NetworkDiagnostic.runSpeedTest();
-              setState(() => _speed = result);
-            }),
+            onPressed: _busyLabel != null
+                ? null
+                : () => _run('speed', () async {
+                    final result = await NetworkDiagnostic.runSpeedTest();
+                    if (!mounted) return;
+                    setState(() => _speed = result);
+                  }),
             body: _speed == null
                 ? null
                 : _KeyValueList(
@@ -199,10 +211,13 @@ class _DiagnosticHomePageState extends State<DiagnosticHomePage> {
           _ActionCard(
             title: 'Quality score',
             description: 'Weighted score across latency, DNS and bandwidth',
-            onPressed: () => _run('quality', () async {
-              final score = await NetworkDiagnostic.evaluateQuality();
-              setState(() => _quality = score);
-            }),
+            onPressed: _busyLabel != null
+                ? null
+                : () => _run('quality', () async {
+                    final score = await NetworkDiagnostic.evaluateQuality();
+                    if (!mounted) return;
+                    setState(() => _quality = score);
+                  }),
             body: _quality == null
                 ? null
                 : _KeyValueList(
@@ -218,29 +233,35 @@ class _DiagnosticHomePageState extends State<DiagnosticHomePage> {
           _ActionCard(
             title: 'Full diagnostic',
             description: 'One shot report covering every probe above',
-            onPressed: () => _run('report', () async {
-              final report = await NetworkDiagnostic.diagnose(
-                includeSpeedTest: false,
-                includePorts: true,
-              );
-              setState(() {
-                _connection = report.connection;
-                _ping = report.ping;
-                _dns = report.dnsResults;
-                _quality = report.quality;
-              });
-            }),
+            onPressed: _busyLabel != null
+                ? null
+                : () => _run('report', () async {
+                    final report = await NetworkDiagnostic.diagnose(
+                      includeSpeedTest: false,
+                      includePorts: true,
+                    );
+                    if (!mounted) return;
+                    setState(() {
+                      _connection = report.connection;
+                      _ping = report.ping;
+                      _dns = report.dnsResults;
+                      _quality = report.quality;
+                    });
+                  }),
           ),
           _ActionCard(
             title: 'Benchmark the API',
             description: 'Measure how fast the diagnostic API itself runs',
-            onPressed: () => _run('benchmark', () async {
-              final suite = await NetworkBenchmark.runAll(
-                iterations: 5,
-                warmupIterations: 1,
-              );
-              setState(() => _benchmark = suite);
-            }),
+            onPressed: _busyLabel != null
+                ? null
+                : () => _run('benchmark', () async {
+                    final suite = await NetworkBenchmark.runAll(
+                      iterations: 5,
+                      warmupIterations: 1,
+                    );
+                    if (!mounted) return;
+                    setState(() => _benchmark = suite);
+                  }),
             body: _benchmark == null
                 ? null
                 : _KeyValueList(
@@ -268,7 +289,7 @@ class _ActionCard extends StatelessWidget {
 
   final String title;
   final String description;
-  final Future<void> Function() onPressed;
+  final Future<void> Function()? onPressed;
   final Widget? body;
 
   @override

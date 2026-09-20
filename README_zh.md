@@ -18,7 +18,7 @@
 [![Dart](https://img.shields.io/badge/Dart-✓-0175C2?logo=dart)](https://dart.dev)
 [![Style: effective dart](https://img.shields.io/badge/style-effective_dart-40c4ff.svg)](https://pub.dev/packages/effective_dart)
 
-> **🔔 推荐升级：** `1.0.4` 移除了 Web 构建中残留的 `dart:io` 引用——各平台实现改为按 `dart.library.io` 条件引入原生版本，Web 侧因此只解析到基于浏览器的实现，可用 `flutter build web --wasm` 编译。建议升级到 `^1.0.4`。
+> **🔔 推荐升级：** `1.0.5` 修正了上传速率测量（不再被服务器回包时间抬高）、修复了 Web 连通性监听泄漏、使 Web 端 DNS 的 DoH 契约与文档一致，并为原始 UDP 解析器加入 IPv6（AAAA）支持。建议升级到 `^1.0.5`。
 
 🌐 **[官方网站](https://www.zerolabsco.com/)** &nbsp;·&nbsp; 📦 **[在 pub.dev 查看](https://pub.dev/packages/zero_network_kit)** &nbsp;·&nbsp; 🔗 **[查看 GitHub 仓库](https://github.com/zero-labsco/zero_network_kit)**
 
@@ -72,7 +72,7 @@
 
 ```yaml
 dependencies:
-  zero_network_kit: ^1.0.4
+  zero_network_kit: ^1.0.5
 ```
 
 ### Android 权限

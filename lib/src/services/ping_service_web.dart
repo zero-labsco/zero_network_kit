@@ -97,10 +97,15 @@ class PingService {
     final client = http.Client();
     final stopwatch = Stopwatch()..start();
     try {
-      final response = await client
-          .get(uri, headers: <String, String>{'Cache-Control': 'no-cache'})
-          .timeout(timeout);
+      final request = http.Request('GET', uri)
+        ..headers['User-Agent'] = 'zero_network_kit/1.0';
+      final response = await client.send(request).timeout(timeout);
+      // 往返耗时只计算到收到响应头，与真实 TCP / ICMP 的 RTT 一致；响应体随后丢弃，
+      // 不参与计时 / The round trip ends when the response headers arrive, matching
+      // a real TCP / ICMP RTT; the body is drained afterwards so it never inflates
+      // the measured latency.
       stopwatch.stop();
+      unawaited(response.stream.drain<void>().timeout(timeout));
       if (response.statusCode >= 400) return null;
       return stopwatch.elapsedMicroseconds / 1000;
     } catch (_) {

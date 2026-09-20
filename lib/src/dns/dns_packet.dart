@@ -89,8 +89,17 @@ class DnsResponse {
 class DnsPacket {
   const DnsPacket._();
 
-  /// 构造一个 A 记录查询报文 / Builds a standard A-record query message.
-  static Uint8List encodeQuery(String domain, {required int id}) {
+  /// 构造一个 DNS 查询报文 / Builds a standard DNS query message.
+  ///
+  /// [type] 为查询的资源记录类型，默认 [DnsRecordType.a]（IPv4）；传入
+  /// [DnsRecordType.aaa] 即可发出 AAAA（IPv6）查询 /
+  /// [type] is the requested record type; it defaults to [DnsRecordType.a]
+  /// (IPv4) and accepts [DnsRecordType.aaaa] for an IPv6 query.
+  static Uint8List encodeQuery(
+    String domain, {
+    required int id,
+    int type = DnsRecordType.a,
+  }) {
     final labels = domain
         .split('.')
         .where((label) => label.isNotEmpty)
@@ -122,7 +131,7 @@ class DnsPacket {
     builder.addByte(0); // Root label.
 
     final question = ByteData(4);
-    question.setUint16(0, DnsRecordType.a);
+    question.setUint16(0, type);
     question.setUint16(2, 1); // IN class.
     builder.add(question.buffer.asUint8List());
 

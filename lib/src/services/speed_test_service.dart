@@ -258,6 +258,10 @@ class SpeedTestService {
 
     final stopwatch = Stopwatch()..start();
     final response = await client.send(request).timeout(timeout);
+    // 上传耗时只计到「请求体完全发出」那一刻，不应包含服务器回包下载时间 /
+    // The upload duration stops as soon as the request body is fully sent, so it
+    // never includes the server's response download time.
+    stopwatch.stop();
     onProgress?.call(
       SpeedTestProgress(
         phase: SpeedTestPhase.upload,
@@ -270,7 +274,6 @@ class SpeedTestService {
       ),
     );
     await response.stream.drain<void>().timeout(timeout);
-    stopwatch.stop();
 
     if (response.statusCode >= 400) {
       throw SpeedTestException(
