@@ -49,12 +49,15 @@ import 'zero_network_kit_platform_interface.dart';
 class ZeroNetworkKit {
   ZeroNetworkKit._();
 
-  static NetworkDiagnosticConfig _config = const NetworkDiagnosticConfig();
   static http.Client? _ownedClient;
   static bool _initialized = false;
 
   /// 当前生效的默认配置 / The currently effective default configuration.
-  static NetworkDiagnosticConfig get config => _config;
+  ///
+  /// 单一真相源是 [NetworkDiagnostic.config]，此处直接转发，避免两份配置状态
+  /// 互相覆盖 / [NetworkDiagnostic.config] is the single source of truth and is
+  /// forwarded here so the two never overwrite each other.
+  static NetworkDiagnosticConfig get config => NetworkDiagnostic.config;
 
   /// 是否已调用过 [init] / Whether [init] has been called.
   static bool get isInitialized => _initialized;
@@ -70,16 +73,26 @@ class ZeroNetworkKit {
   /// 重复调用是安全的，后一次会覆盖前一次的配置 / Calling it repeatedly is
   /// safe; the latest call wins.
   static void init({NetworkDiagnosticConfig? config, http.Client? httpClient}) {
-    if (config != null) _config = config;
+    // 未显式传入时沿用 `NetworkDiagnostic` 的当前配置，避免两份状态互相覆盖 /
+    // Adopt `NetworkDiagnostic`'s current config when none is supplied so the
+    // two never overwrite each other.
+    final effective = config ?? NetworkDiagnostic.config;
+
+    // 上一轮自建的客户端必须先关闭：否则「先 init() 再 init(httpClient: …)」会
+    // 让它既不被关闭也失去引用 / The previously owned client must be closed
+    // first; otherwise "init() then init(httpClient: …)" leaves it neither
+    // closed nor referenced.
+    final previous = _ownedClient;
+    _ownedClient = null;
+    previous?.close();
 
     final client = httpClient ?? http.Client();
     if (httpClient == null) {
-      _ownedClient?.close();
       _ownedClient = client;
     }
 
     NetworkDiagnostic.configure(
-      config: _config,
+      config: effective,
       speedTest: SpeedTestService(client: client),
     );
     _initialized = true;
@@ -93,8 +106,9 @@ class ZeroNetworkKit {
   static Future<void> dispose() async {
     _ownedClient?.close();
     _ownedClient = null;
+    // [NetworkDiagnostic.reset] 同时恢复配置，无需再维护一份副本 /
+    // [NetworkDiagnostic.reset] restores the config too, so no copy is kept.
     NetworkDiagnostic.reset();
-    _config = const NetworkDiagnosticConfig();
     _initialized = false;
   }
 

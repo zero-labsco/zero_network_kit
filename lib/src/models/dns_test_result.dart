@@ -40,6 +40,25 @@ class DnsTestResult {
   /// First resolved address, or `null` on failure.
   String? get primaryAddress => resolvedIps.isEmpty ? null : resolvedIps.first;
 
+  /// 一组结果中成功项的平均解析耗时（毫秒）；全部失败时为 `null` /
+  /// Mean resolution time (ms) across the successful results; `null` when every
+  /// one of them failed.
+  ///
+  /// 失败的查询不计入平均值：它的耗时等于超时上限，混进来会把整批结果拉到不可信
+  /// 的水平 / Failures are excluded: their duration is the full timeout, and
+  /// averaging them in would make the whole batch meaningless.
+  static double? averageLatency(Iterable<DnsTestResult> results) {
+    final successful = results
+        .where((result) => result.isSuccess)
+        .toList(growable: false);
+    if (successful.isEmpty) return null;
+    final total = successful.fold<double>(
+      0,
+      (previous, result) => previous + result.responseTimeMs,
+    );
+    return total / successful.length;
+  }
+
   /// 序列化为可 JSON 编码的 Map / Serialises to a JSON encodable map.
   Map<String, Object?> toMap() => <String, Object?>{
     'server': server,

@@ -29,9 +29,11 @@ print('timestamp  : ${connection.timestamp}');
 | `type` | `NetworkType` (`none`, `wifi`, `mobile`, `ethernet`, `vpn`, `bluetooth`, `other`) |
 | `isConnected` | `true` unless `type` is `none` |
 | `ipAddress` / `ipv6Address` | Local IPv4 / IPv6 (Dart `NetworkInterface`) |
-| `gateway` / `macAddress` | Native; `null` on desktop except Windows |
-| `ssid` / `signalStrength` | Native; **always `null` on desktop** |
-| `isVpn` | Native VPN detection |
+| `ipAddress` / `ipv6Address` | Local IPv4 / IPv6 (native when available, otherwise Dart `NetworkInterface`) |
+| `gateway` | Native; Android, iOS, macOS and Windows via the `sysctl` routing table — no permission needed — `null` on Linux and Web |
+| `macAddress` | Native; Android and Windows only — `null` on iOS, macOS, Linux and Web |
+| `ssid` / `signalStrength` | Native; **Android only** (and needs a runtime permission grant) — `null` everywhere else |
+| `isVpn` | Native VPN detection; `null`-safe `false` when unavailable |
 | `isReachable` | Only filled when `probeReachability: true` |
 | `timestamp` | When the snapshot was taken |
 

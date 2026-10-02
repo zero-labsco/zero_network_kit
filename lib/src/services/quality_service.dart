@@ -1,3 +1,4 @@
+import '../models/dns_test_result.dart';
 import '../models/network_quality_score.dart';
 import '../models/ping_result.dart';
 import '../models/speed_test_result.dart';
@@ -76,16 +77,7 @@ class QualityService {
         dnsServers: dnsServers ?? config.dnsServers,
         timeout: dnsTimeout ?? config.dnsTimeout,
       );
-      final successful = results
-          .where((result) => result.isSuccess)
-          .toList(growable: false);
-      if (successful.isNotEmpty) {
-        final total = successful.fold<double>(
-          0,
-          (previous, result) => previous + result.responseTimeMs,
-        );
-        dnsLatency = total / successful.length;
-      }
+      dnsLatency = DnsTestResult.averageLatency(results);
     }
 
     SpeedTestResult? speed;

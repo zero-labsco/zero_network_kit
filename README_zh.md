@@ -18,7 +18,7 @@
 [![Dart](https://img.shields.io/badge/Dart-✓-0175C2?logo=dart)](https://dart.dev)
 [![Style: effective dart](https://img.shields.io/badge/style-effective_dart-40c4ff.svg)](https://pub.dev/packages/effective_dart)
 
-> **🔔 推荐升级：** `1.0.5` 修正了上传速率测量（不再被服务器回包时间抬高）、修复了 Web 连通性监听泄漏、使 Web 端 DNS 的 DoH 契约与文档一致，并为原始 UDP 解析器加入 IPv6（AAAA）支持。建议升级到 `^1.0.5`。
+> **🔔 推荐升级：** `1.1.0` 修正了 macOS 上 ICMP ping 的超时单位、HTTP 客户端泄漏、iOS 的 VPN 误判以及 DNS 的延迟与编码问题，让 macOS 原生层返回网络详情，并明确记录了各平台实际填充哪些原生字段。建议升级到 `^1.1.0`。
 
 🌐 **[官方网站](https://www.zerolabsco.com/)** &nbsp;·&nbsp; 📦 **[在 pub.dev 查看](https://pub.dev/packages/zero_network_kit)** &nbsp;·&nbsp; 🔗 **[查看 GitHub 仓库](https://github.com/zero-labsco/zero_network_kit)**
 
@@ -49,7 +49,7 @@
 
 | 能力 | API | 说明 |
 | --- | --- | --- |
-| 连通性 | `NetworkDiagnostic.checkConnection()` | 传输类型、IPv4/IPv6、网关、SSID、信号强度、MAC、VPN |
+| 连通性 | `NetworkDiagnostic.checkConnection()` | 传输类型、IPv4/IPv6、网关、SSID、信号强度、MAC、VPN——[各平台字段可用性不同](#原生字段可用性) |
 | 连通性监听 | `NetworkDiagnostic.onConnectivityChanged` | 每次变化都重新采集并推送快照 |
 | 延迟 | `NetworkDiagnostic.ping()` | 全平台 TCP 握手往返；桌面端可用系统 ICMP |
 | DNS | `NetworkDiagnostic.resolve()` | `system` 解析器 + 直连指定服务器的原始 UDP 查询 |
@@ -57,7 +57,7 @@
 | 端口 | `NetworkDiagnostic.checkPort()` / `scanPorts()` | 限定并发的 TCP 可达性检测 |
 | 质量评分 | `NetworkDiagnostic.evaluateQuality()` | 0–100 加权得分 + 等级 + 优化建议 |
 | 汇总报告 | `NetworkDiagnostic.diagnose()` | 一次性聚合全部探测结果 |
-| 能力探测 | `NetworkDiagnostic.capabilities` | 先查询后调用，按平台隐藏不支持的卡片（如桌面 SSID） |
+| 能力探测 | `NetworkDiagnostic.capabilities` | 先查询后调用；`wifiDetails` 仅 Android，`nativeDetails` 仅移动端 |
 | 基准测试 | `NetworkBenchmark.runAll()` | 测量诊断 API 自身的耗时 |
 
 设计原则：
@@ -72,15 +72,48 @@
 
 ```yaml
 dependencies:
-  zero_network_kit: ^1.0.5
+  zero_network_kit: ^1.1.0
 ```
 
 ### Android 权限
 
 插件自带的 manifest 已声明 `INTERNET`、`ACCESS_NETWORK_STATE`、
-`ACCESS_WIFI_STATE`。若要读取 Wi-Fi **SSID**，Android 8.1+ 还需定位权限
-（`ACCESS_FINE_LOCATION`），iOS 需要 *Access WiFi Information* 权限与定位授权。
-未授权时快照中的 `ssid` 为 `null`，不会报错。
+`ACCESS_WIFI_STATE`——连通性、延迟、DNS、端口与测速所需的全部权限。
+
+读取 Wi-Fi **SSID / BSSID** 不同：它需要 `dangerous` 级权限，因此插件**故意不声明**
+——库 manifest 中的 `<uses-permission>` 会被合并进每一个宿主 App，一旦声明就会把该
+权限（以及 Google Play 数据安全表单中的位置信息申报义务）强加给所有集成方，哪怕它们
+从不读取 SSID。请改为在**宿主 App** 的
+`android/app/src/main/AndroidManifest.xml` 中按需 opt-in：
+
+```xml
+<!-- Android 13+ 可用 NEARBY_WIFI_DEVICES 替代定位权限；neverForLocation 表明
+     不会据此推算位置。低版本设备会忽略该未知权限。 -->
+<uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES"
+    android:usesPermissionFlags="neverForLocation" />
+
+<!-- Android 8.1 – 12 仍需定位权限 -->
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"
+    android:maxSdkVersion="32" />
+```
+
+同时需要在运行时动态申请（Android 6+）。未授权时 `getNetworkDetails()` **不会抛异常**，
+只是把 `ssid` / `bssid` 留空——这正是本插件的优雅降级约定。
+
+### iOS
+
+无需额外配置。但请注意 iOS 原生层实际返回哪些字段：
+
+| 字段 | iOS | 原因 |
+| --- | --- | --- |
+| `ipAddress`、`ipv6Address` | ✅ | 通过 `getifaddrs` 读取 `en0` |
+| `gateway` | ✅ | 从 `sysctl` 路由表读取（与 `netstat -rn` 同源） |
+| `isVpn` | ✅ | 存在承载可路由 IPv4 的隧道网卡 |
+| `ssid`、`bssid`、`signalStrength` | ❌ 恒为 `null` | 需要 *Access WiFi Information* 能力与定位授权，插件未申请 |
+| `macAddress` | ❌ 恒为 `null` | iOS 7 起返回固定值 |
+
+渲染前请先查询 `NetworkDiagnostic.capabilities`：`wifiDetails` **仅 Android**，
+`nativeDetails` 覆盖 IP / IPv6 / VPN。
 
 ## 用法
 
@@ -261,6 +294,26 @@ NetworkDiagnostic.configure(
 | Linux | ✅ 支持（C++ 原生实现） |
 | Web | ⚠️ 部分支持——详见下方 [Web 支持](#web-支持) |
 
+### 原生字段可用性
+
+`NetworkConnectionInfo` 各字段在哪些平台真正有值。未列出的即为 `null`；缺权限
+不会抛异常。
+
+| 字段 | Android | iOS | macOS | Windows | Linux | Web |
+| --- | --- | --- | --- | --- | --- | --- |
+| `ipAddress` / `ipv6Address` | ✅ | ✅ | ✅ | ✅ | ✅ Dart 兜底 | ❌ |
+| `isVpn` | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| `gateway` | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| `macAddress` | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
+| `ssid` / `bssid` | ✅ 需[授权](#android-权限) | ❌ | ❌ | ❌ | ❌ | ❌ |
+| `signalStrength` | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+
+`gateway` 在 Android、iOS、macOS 与 Windows 上都从 `sysctl` 路由表读取——不需要
+任何权限或 entitlement，因此凡是原生层已实现的平台都能拿到（Linux 与 Web 除外）。
+
+`NetworkDiagnostic.capabilities` 用两个标志反映上表：`wifiDetails`（仅 Android）
+与 `nativeDetails`（仅移动端）。
+
 ### Web 支持
 
 Web 构建提供同样的静态 API；浏览器沙箱禁止的能力会优雅降级（返回 `null`
@@ -268,7 +321,7 @@ Web 构建提供同样的静态 API；浏览器沙箱禁止的能力会优雅降
 
 | 能力 | Web | 说明 |
 | --- | --- | --- |
-| 连通性检测 | ✅ | 通过 `connectivity_plus` |
+| 连通性检测 | ✅ | 通过浏览器的 `navigator.onLine` |
 | Ping（`PingMode.tcp`） | ⚠️ | 以 HTTPS 往返耗时度量，目标主机需下发 CORS 头 |
 | Ping（`PingMode.icmp`） | ❌ | 抛出 `UnsupportedError` |
 | DNS（系统解析器） | ✅ | 通过 DNS-over-HTTPS |

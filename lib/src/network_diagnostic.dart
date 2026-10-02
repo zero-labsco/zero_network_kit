@@ -274,20 +274,35 @@ class NetworkDiagnostic {
     final connection = await checkConnection();
     final targetHost = host ?? _config.pingHost;
 
-    PingResult? pingResult;
-    if (includePing) {
-      pingResult = await ping(host: targetHost);
-    }
+    // 延迟 / DNS / 端口三项互不依赖，并发执行后整轮耗时等于最慢的那一项，而不是
+    // 三者之和 / Latency, DNS and ports are independent, so running them together
+    // makes the round last as long as the slowest one instead of their sum.
+    // 每项都单独兜住异常，兑现「任何子项失败都不中断整体流程」的承诺 / Each probe
+    // is guarded individually, honouring the "a failing sub-test never aborts the
+    // run" promise.
+    final pingFuture = includePing
+        ? _guarded<PingResult>(() => ping(host: targetHost))
+        : Future<PingResult?>.value(null);
+    final dnsFuture = includeDns
+        ? _guarded<List<DnsTestResult>>(
+            () => resolve(domain: dnsDomain, dnsServers: dnsServers),
+          )
+        : Future<List<DnsTestResult>?>.value(null);
+    final portFuture = includePorts
+        ? _guarded<List<PortCheckResult>>(
+            () => scanPorts(host: targetHost, ports: ports),
+          )
+        : Future<List<PortCheckResult>?>.value(null);
 
-    var dnsResults = const <DnsTestResult>[];
-    if (includeDns) {
-      dnsResults = await resolve(domain: dnsDomain, dnsServers: dnsServers);
-    }
+    await Future.wait<Object?>(<Future<Object?>>[
+      pingFuture,
+      dnsFuture,
+      portFuture,
+    ], eagerError: false);
 
-    var portResults = const <PortCheckResult>[];
-    if (includePorts) {
-      portResults = await scanPorts(host: targetHost, ports: ports);
-    }
+    final pingResult = await pingFuture;
+    final dnsResults = (await dnsFuture) ?? const <DnsTestResult>[];
+    final portResults = (await portFuture) ?? const <PortCheckResult>[];
 
     SpeedTestResult? speed;
     if (includeSpeedTest) {
@@ -301,16 +316,7 @@ class NetworkDiagnostic {
       }
     }
 
-    final successfulDns = dnsResults
-        .where((result) => result.isSuccess)
-        .toList(growable: false);
-    final dnsLatency = successfulDns.isEmpty
-        ? null
-        : successfulDns.fold<double>(
-                0,
-                (previous, result) => previous + result.responseTimeMs,
-              ) /
-              successfulDns.length;
+    final dnsLatency = DnsTestResult.averageLatency(dnsResults);
 
     final quality = NetworkQualityEvaluator.evaluate(
       latency: pingResult?.isSuccess == true ? pingResult?.averageTime : null,
@@ -334,6 +340,19 @@ class NetworkDiagnostic {
       quality: quality,
       timestamp: DateTime.now(),
     );
+  }
+
+  /// 执行一项子探测并吞掉异常，失败时返回 `null` /
+  /// Runs one sub-probe and swallows its failure, returning `null`.
+  ///
+  /// 子项失败只应该让对应字段留空，绝不能中断整轮诊断 / A failing sub-test may
+  /// only leave its own field empty; it must never abort the whole run.
+  static Future<T?> _guarded<T>(Future<T> Function() action) async {
+    try {
+      return await action();
+    } catch (_) {
+      return null;
+    }
   }
 
   /// 读取原生平台版本 / Reads the native platform version.

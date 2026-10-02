@@ -5,8 +5,17 @@ enum NetworkCapability {
   /// 连通性检测 / Connectivity check.
   connectivity,
 
-  /// 原生网络详情（SSID / 网关 / MAC / VPN）/ Native details.
+  /// 原生网络详情（IP / IPv6 / VPN 等）/ Native details (IP / IPv6 / VPN …).
   nativeDetails,
+
+  /// Wi-Fi 详情（SSID / BSSID / 信号强度）/ Wi-Fi details (SSID / BSSID / RSSI).
+  ///
+  /// 仅 Android 原生层真正读取这些字段：iOS 未申请 *Access WiFi Information*
+  /// 能力，桌面与 Web 均不提供，故这些平台上对应字段恒为 `null` / Only the
+  /// Android native layer actually reads them: iOS does not request the
+  /// *Access WiFi Information* capability and desktop / web never provide them,
+  /// so the fields stay `null` there.
+  wifiDetails,
 
   /// 本地 IP / IPv6 快照 / Local address snapshot.
   localAddresses,
@@ -86,6 +95,9 @@ class NetworkCapabilities {
     };
     if (isMobile) supported.add(NetworkCapability.nativeDetails);
     if (isDesktop) supported.add(NetworkCapability.icmpPing);
+    // 只有 Android 原生层读取 SSID / BSSID / RSSI / Only the Android native
+    // layer reads SSID / BSSID / RSSI.
+    if (Platform.isAndroid) supported.add(NetworkCapability.wifiDetails);
 
     return NetworkCapabilities(supported: supported, platform: platform);
   }

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -168,5 +169,25 @@ void main() {
       final id = DnsPacket.randomId();
       expect(id, inInclusiveRange(0, 0xFFFF));
     }
+  });
+
+  test('encodes non-ASCII domains as UTF-8 instead of truncating', () {
+    // `codeUnits` 是 UTF-16 码元：中文字符的值远大于 255，写进 Uint8List 会被
+    // 静默截断成另一个字节，报文就错了 / `codeUnits` yields UTF-16 code units;
+    // CJK characters exceed 255 and would be silently truncated to a different
+    // byte, corrupting the message.
+    final query = DnsPacket.encodeQuery('例子.example', id: 7);
+
+    final encoded = utf8.encode('例子');
+    expect(encoded.length, 6);
+    // 报文结构：12 字节头 + 1 长度字节 + 6 个 UTF-8 字节 + 1 长度字节 + 7 字节
+    // "example" + 1 根标签 + 4 字节问题段 /
+    // Layout: 12-byte header + 1 length + 6 UTF-8 bytes + 1 length + 7 bytes
+    // "example" + 1 root label + 4-byte question.
+    expect(query.length, 12 + 1 + 6 + 1 + 7 + 1 + 4);
+    expect(query.sublist(13, 19), encoded);
+    // 每个标签长度前缀必须是该标签的 UTF-8 字节数，而不是字符数 /
+    // Each label length prefix counts UTF-8 bytes, not characters.
+    expect(query[12], 6);
   });
 }

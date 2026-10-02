@@ -103,6 +103,15 @@ class DnsService {
     );
   }
 
+  /// A 与 AAAA 这对兄弟查询的额外等待窗口 / Grace window granted to the sibling
+  /// of an already answered A / AAAA query.
+  ///
+  /// Web 端把 A 与 AAAA 拆成两次独立的 HTTPS 请求，无需该窗口；保留同名方法是
+  /// 为了让两个平台分支共享同一套 API 表面 / The web issues A and AAAA as two
+  /// independent HTTPS requests and needs no such window; the method exists so
+  /// both platform branches expose the same API surface.
+  static Duration siblingGrace(Duration timeout) => Duration.zero;
+
   /// 将知名 DNS 服务器映射到其 DoH 端点 / Maps well-known DNS servers to DoH.
   static String? _dohForServer(String server) {
     switch (server) {
@@ -131,31 +140,25 @@ class DnsService {
     final stopwatch = Stopwatch()..start();
     final client = http.Client();
     try {
-      final response = await client
-          .get(
-            Uri.parse('$dohUrl?name=$domain&type=A'),
-            headers: <String, String>{'Accept': 'application/dns-json'},
-          )
-          .timeout(timeout);
+      // A 与 AAAA 各查一次，与原生端的 A+AAAA 双发保持一致 / Look A and AAAA up
+      // separately, mirroring the native A+AAAA pair.
+      final a = await _dohLookup(client, dohUrl, domain, 1, timeout);
+      final aaaa = await _dohLookup(client, dohUrl, domain, 28, timeout);
       stopwatch.stop();
-      if (response.statusCode != 200) {
+
+      final error = a.error ?? aaaa.error;
+      if (error != null) {
         return DnsTestResult(
           server: serverLabel,
           domain: domain,
           isSuccess: false,
           responseTime: stopwatch.elapsed,
-          errorMessage: 'DoH returned HTTP ${response.statusCode}',
+          errorMessage: error,
           timestamp: DateTime.now(),
         );
       }
-      final json = jsonDecode(response.body) as Map<String, dynamic>;
-      final answers =
-          (json['Answer'] as List?)?.cast<Map<String, dynamic>>() ??
-          const <Map<String, dynamic>>[];
-      final ips = answers
-          .where((answer) => answer['type'] == 1 || answer['type'] == 28)
-          .map((answer) => answer['data'].toString())
-          .toList(growable: false);
+
+      final ips = <String>{...a.ips, ...aaaa.ips}.toList(growable: false);
       return DnsTestResult(
         server: serverLabel,
         domain: domain,
@@ -179,4 +182,53 @@ class DnsService {
       client.close();
     }
   }
+
+  /// 单次 DoH 查询 / A single DoH lookup of one record type.
+  static Future<_DohLookup> _dohLookup(
+    http.Client client,
+    String dohUrl,
+    String domain,
+    int type,
+    Duration timeout,
+  ) async {
+    // 通过 `queryParameters` 组装：`domain` 里的 `&`、`=` 或 Unicode 字符若直接
+    // 拼进字符串会破坏查询串 / Build the query through `queryParameters`:
+    // an `&`, `=` or Unicode character inside `domain` would otherwise break it.
+    final uri = Uri.parse(dohUrl).replace(
+      queryParameters: <String, String>{'name': domain, 'type': '$type'},
+    );
+    try {
+      final response = await client
+          .get(uri, headers: <String, String>{'Accept': 'application/dns-json'})
+          .timeout(timeout);
+      if (response.statusCode != 200) {
+        return _DohLookup.failed('DoH returned HTTP ${response.statusCode}');
+      }
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      final answers =
+          (json['Answer'] as List?)?.cast<Map<String, dynamic>>() ??
+          const <Map<String, dynamic>>[];
+      return _DohLookup(
+        answers
+            .where((answer) => answer['type'] == type)
+            .map((answer) => answer['data'].toString())
+            .toList(growable: false),
+      );
+    } catch (error) {
+      return _DohLookup.failed(error.toString());
+    }
+  }
+}
+
+/// 单次 DoH 查询的结果 / Outcome of a single DoH lookup.
+class _DohLookup {
+  const _DohLookup(this.ips) : error = null;
+
+  const _DohLookup.failed(this.error) : ips = const <String>[];
+
+  /// 解析出的地址 / Resolved addresses.
+  final List<String> ips;
+
+  /// 失败原因，成功时为 `null` / Failure reason, `null` on success.
+  final String? error;
 }

@@ -84,14 +84,20 @@ class ConnectivityService {
 
     final fallback = await _dartInterfaceSnapshot();
 
-    final ipAddress =
-        _asString(native?['ipAddress']) ??
-        fallback.ipAddress ??
-        _asString(native?['ipv6Address']) ??
-        fallback.ipv6Address;
+    final hasAnyAddress =
+        _asString(native?['ipAddress']) != null ||
+        fallback.ipAddress != null ||
+        _asString(native?['ipv6Address']) != null ||
+        fallback.ipv6Address != null;
 
+    // 只有当适配器**没有给出任何结论**时才用本地地址兜底：若它明确报告了传输
+    // 类型（含 `none`），就以它为准，否则虚拟网卡 / Docker 网桥 / 热点残留的 IP
+    // 会把离线判成在线 / Fall back to a local address only when the adapter
+    // reported **nothing at all**; when it did report transports (`none`
+    // included) it wins, otherwise a VM, Docker bridge or stale hotspot IP would
+    // make an offline device look online.
     final info = NetworkConnectionInfo(
-      isConnected: types.isNotEmpty || ipAddress != null,
+      isConnected: types.isNotEmpty || (transports.isEmpty && hasAnyAddress),
       type: _resolveType(types),
       ssid: _asString(native?['ssid']),
       signalStrength: (native?['signalStrength'] as num?)?.toInt(),
@@ -107,16 +113,38 @@ class ConnectivityService {
     return info.copyWith(isReachable: await _safeProbe(probeTimeout));
   }
 
+  Stream<NetworkConnectionInfo>? _changes;
+
   /// 监听网络连接变化 / Emits a fresh snapshot whenever connectivity changes.
   ///
   /// 立即发出一次当前状态，随后在每次底层变化时重新采集 /
   /// Emits the current state immediately, then re-samples on every change.
-  Stream<NetworkConnectionInfo> get onConnectivityChanged async* {
-    yield await checkConnection();
-    await for (final _ in _adapter.onConnectivityChanged) {
-      yield await checkConnection();
-    }
-  }
+  ///
+  /// 该流被缓存并支持多订阅：此前每次读取 getter 都会新建一个流，多个订阅者会
+  /// 各自重复执行一次完整的采集 / The stream is cached and multi-subscription:
+  /// it used to be rebuilt on every getter read, so N subscribers ran the whole
+  /// sampling N times.
+  Stream<NetworkConnectionInfo> get onConnectivityChanged =>
+      _changes ??= Stream<NetworkConnectionInfo>.multi((controller) {
+        StreamSubscription<List<String>>? subscription;
+        var active = true;
+
+        Future<void> emit() async {
+          if (!active) return;
+          final snapshot = await checkConnection();
+          if (!active) return;
+          controller.add(snapshot);
+        }
+
+        unawaited(emit());
+        subscription = _adapter.onConnectivityChanged.listen((_) {
+          unawaited(emit());
+        });
+        controller.onCancel = () {
+          active = false;
+          unawaited(subscription?.cancel());
+        };
+      });
 
   Future<List<String>> _safeTransports() async {
     try {

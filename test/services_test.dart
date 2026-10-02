@@ -93,6 +93,35 @@ void main() {
 
       expect(info.isReachable, isTrue);
     });
+
+    test('trusts an explicit "none" over any local address', () async {
+      final adapter = FakeConnectivityAdapter(<String>['none']);
+      addTearDown(adapter.dispose);
+
+      final info = await ConnectivityService(
+        adapter: adapter,
+      ).checkConnection(includeNativeDetails: false);
+
+      // 适配器已明确报告 `none`；虚拟机网卡 / Docker 网桥残留的 IP 不应把离线判
+      // 成在线 / The adapter explicitly reported `none`; a leftover VM or Docker
+      // bridge IP must not make an offline device look online.
+      expect(info.type, NetworkType.none);
+      expect(info.isConnected, isFalse);
+    });
+
+    test('caches the change stream across reads', () {
+      final adapter = FakeConnectivityAdapter(<String>['wifi']);
+      addTearDown(adapter.dispose);
+      final service = ConnectivityService(adapter: adapter);
+
+      // 此前每次读取 getter 都会新建一个流，多个订阅者会各自重复采集一轮 /
+      // Reading the getter used to build a fresh stream, so N subscribers each
+      // ran a full sampling round.
+      expect(
+        service.onConnectivityChanged,
+        same(service.onConnectivityChanged),
+      );
+    });
   });
 
   group('PingService', () {
@@ -141,6 +170,80 @@ void main() {
 
       expect(result.sent, 0);
       expect(result.received, 0);
+    });
+
+    test('builds platform specific ICMP arguments', () {
+      // `-W` 的单位在 macOS (BSD) 上是**毫秒**、在 Linux iputils 上是**秒**，
+      // Windows 的 `-w` 也是毫秒 / `-W` is **milliseconds** on macOS (BSD) and
+      // **seconds** on Linux iputils; Windows `-w` is milliseconds too.
+      expect(
+        PingService.icmpArgs(
+          host: '1.1.1.1',
+          count: 3,
+          timeout: const Duration(seconds: 2),
+          isWindows: false,
+          isMacOS: true,
+        ),
+        <String>['-c', '3', '-W', '2000', '1.1.1.1'],
+        reason: 'macOS -W takes milliseconds',
+      );
+
+      expect(
+        PingService.icmpArgs(
+          host: '1.1.1.1',
+          count: 3,
+          timeout: const Duration(seconds: 2),
+          isWindows: false,
+          isMacOS: false,
+        ),
+        <String>['-c', '3', '-W', '2', '1.1.1.1'],
+        reason: 'Linux -W takes whole seconds',
+      );
+
+      expect(
+        PingService.icmpArgs(
+          host: '1.1.1.1',
+          count: 3,
+          timeout: const Duration(seconds: 2),
+          isWindows: true,
+          isMacOS: false,
+        ),
+        <String>['-n', '3', '-w', '2000', '1.1.1.1'],
+        reason: 'Windows -w takes milliseconds',
+      );
+
+      // 不足 1 秒的超时在 Linux 上仍需 ≥ 1，否则 ping 会直接拒绝 /
+      // A sub-second timeout still has to be ≥ 1 on Linux.
+      expect(
+        PingService.icmpArgs(
+          host: '1.1.1.1',
+          count: 1,
+          timeout: const Duration(milliseconds: 200),
+          isWindows: false,
+          isMacOS: false,
+        ),
+        <String>['-c', '1', '-W', '1', '1.1.1.1'],
+      );
+    });
+  });
+
+  group('DnsService', () {
+    test('clamps the A/AAAA sibling grace window', () {
+      // 丢包的 AAAA 不能把整次解析拖到超时上限：宽限窗口取超时的五分之一并夹在
+      // 100 ms – 1 s / A dropped AAAA must not stretch the lookup to the full
+      // timeout: the grace window is a fifth of it, clamped to 100 ms – 1 s.
+      expect(
+        DnsService.siblingGrace(const Duration(seconds: 5)),
+        const Duration(seconds: 1),
+      );
+      expect(
+        DnsService.siblingGrace(const Duration(milliseconds: 250)),
+        const Duration(milliseconds: 100),
+      );
+      expect(
+        DnsService.siblingGrace(const Duration(seconds: 2)),
+        const Duration(milliseconds: 400),
+      );
     });
   });
 

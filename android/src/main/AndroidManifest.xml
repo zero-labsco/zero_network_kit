@@ -7,4 +7,58 @@
   <uses-permission android:name="android.permission.INTERNET" />
   <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
   <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+
+  <!--
+    ==========================================================================
+    以下两个权限故意不由插件声明 / The two permissions below are deliberately
+    NOT declared by the plugin:
+
+      ACCESS_FINE_LOCATION  - Android 8.1（API 27）起读取 SSID / BSSID 需要定位
+                              权限 / Required from Android 8.1 (API 27) onwards
+                              to read SSID / BSSID.
+      NEARBY_WIFI_DEVICES   - Android 13（API 33）起可用它替代定位权限读取
+                              Wi-Fi 信息 / Available from Android 13 (API 33)
+                              onwards as a replacement for the location
+                              permission when reading Wi-Fi info.
+
+    两者都是 dangerous 级权限：声明后需要运行时动态申请，并且会让宿主 App 在
+    Google Play 数据安全表单中承担位置信息的申报义务。库 manifest 中的
+    uses-permission 会被 manifest merger 合并进宿主 App，若在此声明，所有集成方
+    都会被强制带上这些权限，即使它们从不读取 SSID。因此改由使用方按需 opt-in。
+
+    Both are dangerous-level: they need a runtime request and they make the host
+    app declare location collection in the Google Play data-safety form. A
+    uses-permission in a library manifest is merged into the host app, so
+    declaring them here would force every integrator to carry them, even those
+    that never read an SSID. They are therefore opt-in for the host app.
+
+    需要 SSID / BSSID 时，在宿主 App 的
+    android/app/src/main/AndroidManifest.xml 中加入下面两行，并在运行时申请
+    （Android 6+）。/ To read SSID / BSSID, add the two lines below to the host
+    app's android/app/src/main/AndroidManifest.xml and request them at runtime
+    (Android 6+).
+
+      [Android 13+] NEARBY_WIFI_DEVICES 替代定位权限；neverForLocation 表明不会
+      据此推算位置。低版本设备会忽略该未知权限，无需 tools:targetApi。
+      [Android 13+] NEARBY_WIFI_DEVICES replaces the location permission;
+      neverForLocation asserts it is not used to derive a location. Older
+      devices simply ignore the unknown permission, so no tools:targetApi
+      attribute is needed.
+
+      uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES"
+          android:usesPermissionFlags="neverForLocation"
+
+      [Android 8.1 - 12] 仍需定位权限；maxSdkVersion 避免在 13+ 继续要求它。
+      [Android 8.1 - 12] Still needs the location permission; maxSdkVersion
+      stops it from being requested on 13+.
+
+      uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"
+          android:maxSdkVersion="32"
+
+    未授权时 getNetworkDetails() 不会报错，只是把 ssid / bssid 留空，这正是本
+    插件的优雅降级约定。/ Without the grant, getNetworkDetails() does not throw,
+    it simply leaves ssid / bssid empty - that is this plugin's
+    graceful-degradation contract.
+    ==========================================================================
+  -->
 </manifest>

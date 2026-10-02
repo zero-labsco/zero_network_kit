@@ -4,7 +4,16 @@ enum NetworkCapability {
   connectivity,
 
   /// 原生网络详情（SSID / 网关 / MAC / VPN）/ Native details.
+  ///
+  /// Web 上不存在，仅为与原生端保持同一枚举形状 / Absent on the web; declared
+  /// only so the enum has the same shape as the native variant.
   nativeDetails,
+
+  /// Wi-Fi 详情（SSID / BSSID / 信号强度）/ Wi-Fi details (SSID / BSSID / RSSI).
+  ///
+  /// Web 上不存在，仅为与原生端保持同一枚举形状 / Absent on the web; declared
+  /// only so the enum has the same shape as the native variant.
+  wifiDetails,
 
   /// 本地 IP / IPv6 快照 / Local address snapshot.
   localAddresses,

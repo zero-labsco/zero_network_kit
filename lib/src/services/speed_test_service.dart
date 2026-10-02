@@ -107,19 +107,23 @@ class SpeedTestService {
     void Function(SpeedTestProgress progress)? onProgress,
   }) async {
     final client = _client ?? http.Client();
-    final downloadUri = Uri.parse(downloadUrl);
-    final uploadUri = uploadUrl == null ? null : Uri.parse(uploadUrl);
-
-    PingResult? pingResult;
-    if (includePing) {
-      pingResult = await _pingService.ping(
-        host: pingHost ?? downloadUri.host,
-        count: pingCount,
-        timeout: pingTimeout,
-      );
-    }
-
     try {
+      // URI 解析与延迟探测都必须包在 `try` 内：否则它们抛异常时 `finally` 不会
+      // 执行，内部创建的客户端就泄漏了 / URI parsing and the latency probe must
+      // live inside `try`; otherwise an exception skips `finally` and the
+      // internally created client leaks.
+      final downloadUri = Uri.parse(downloadUrl);
+      final uploadUri = uploadUrl == null ? null : Uri.parse(uploadUrl);
+
+      PingResult? pingResult;
+      if (includePing) {
+        pingResult = await _pingService.ping(
+          host: pingHost ?? downloadUri.host,
+          count: pingCount,
+          timeout: pingTimeout,
+        );
+      }
+
       final download = await _measureDownload(
         client,
         downloadUri,
@@ -258,9 +262,12 @@ class SpeedTestService {
 
     final stopwatch = Stopwatch()..start();
     final response = await client.send(request).timeout(timeout);
-    // 上传耗时只计到「请求体完全发出」那一刻，不应包含服务器回包下载时间 /
-    // The upload duration stops as soon as the request body is fully sent, so it
-    // never includes the server's response download time.
+    // 计时止于「收到响应头」：`package:http` 不暴露请求体发完的时刻，因此该值
+    // 实际还含服务端处理与首字节回程，是偏保守（偏低）的估计，且不含响应体下载 /
+    // Timing stops when the response headers arrive: `package:http` does not
+    // expose the moment the body finished sending, so the figure also covers
+    // server processing and the first return byte — a conservative (low) estimate
+    // that never includes the response body download.
     stopwatch.stop();
     onProgress?.call(
       SpeedTestProgress(
@@ -284,16 +291,31 @@ class SpeedTestService {
     return _TransferOutcome(bytes: payload.length, elapsed: stopwatch.elapsed);
   }
 
-  /// 生成不可压缩的随机负载 / Builds an incompressible random payload.
+  /// 生成不可压缩的随机负载，同尺寸结果会被缓存 /
+  /// Builds an incompressible random payload; identical sizes are cached.
+  ///
+  /// 逐字节生成 1 MiB 负载要跑一百万次循环，每次测速都重算纯属浪费；种子固定为
+  /// 1337，因此同一尺寸的负载内容始终一致，缓存是安全的 / Filling a 1 MiB payload
+  /// byte by byte costs a million iterations, and redoing it on every run is
+  /// pure waste; the seed is fixed at 1337, so the bytes for a given size are
+  /// always identical and caching is safe.
   static Uint8List _buildPayload(int size) {
     final safeSize = math.max(1, size);
+    final cached = _payloadCache;
+    if (cached != null && _payloadCacheSize == safeSize) return cached;
+
     final random = math.Random(1337);
     final payload = Uint8List(safeSize);
     for (var i = 0; i < safeSize; i++) {
       payload[i] = random.nextInt(256);
     }
+    _payloadCache = payload;
+    _payloadCacheSize = safeSize;
     return payload;
   }
+
+  static Uint8List? _payloadCache;
+  static int _payloadCacheSize = 0;
 }
 
 /// 单阶段传输结果 / Outcome of a single transfer phase.

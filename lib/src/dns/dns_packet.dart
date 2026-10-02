@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
@@ -117,7 +118,11 @@ class DnsPacket {
     builder.add(header.buffer.asUint8List());
 
     for (final label in safeLabels) {
-      final bytes = Uint8List.fromList(label.codeUnits);
+      // 必须走 UTF-8：`codeUnits` 是 UTF-16 码元，中文等字符的值大于 255，写进
+      // `Uint8List` 会被静默截断成一个错误的报文 / UTF-8 is mandatory:
+      // `codeUnits` yields UTF-16 code units, so characters such as CJK exceed
+      // 255 and would be silently truncated into a corrupt message.
+      final bytes = Uint8List.fromList(utf8.encode(label));
       if (bytes.length > 63) {
         throw ArgumentError.value(
           label,

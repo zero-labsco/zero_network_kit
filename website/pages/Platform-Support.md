@@ -11,12 +11,15 @@ capabilities the sandbox forbids degrade gracefully instead of failing.
 
 ## Capability matrix / 能力矩阵
 
-| Capability | Android / iOS | Desktop (macOS / Windows / Linux) | Web |
-| --- | --- | --- | --- |
-| Connectivity (`connectivity_plus`) | ✅ | ✅ | ✅ |
-| Local IP / IPv6 (`NetworkInterface`) | ✅ | ✅ | ❌ |
-| Native details (SSID / gateway / MAC / VPN) | ✅ | ⚠️ see below | ❌ |
-| TCP ping | ✅ | ✅ | ⚠️ HTTPS round trip |
+| Capability | Android | iOS | Desktop (macOS / Windows / Linux) | Web |
+| --- | --- | --- | --- | --- |
+| Connectivity | ✅ | ✅ | ✅ | ✅ `navigator.onLine` |
+| Local IP / IPv6 (`NetworkInterface`) | ✅ | ✅ | ✅ | ❌ |
+| Native details — IP / IPv6 / VPN | ✅ | ✅ | ✅ macOS, Windows · ❌ Linux | ❌ |
+| Native details — gateway | ✅ | ✅ | ✅ Windows, macOS · ❌ Linux | ❌ |
+| Native details — MAC | ✅ | ❌ | ✅ Windows · ❌ macOS, Linux | ❌ |
+| Native details — SSID / BSSID / RSSI | ✅ permission required | ❌ | ❌ | ❌ |
+| TCP ping | ✅ | ✅ | ✅ | ⚠️ HTTPS round trip |
 | ICMP ping (`Process.run('ping')`) | ❌ | ✅ | ❌ |
 | HTTP ping | ✅ | ✅ | ✅ |
 | DNS system resolver | ✅ | ✅ | ✅ DoH |
@@ -36,12 +39,16 @@ Query the host platform before calling, so your UI can hide unsupported cards:
 final caps = NetworkDiagnostic.capabilities;
 print(caps.platform);            // 'android' | 'ios' | 'macos' | 'windows' | 'linux' | 'web'
 print(caps.supports(NetworkCapability.nativeDetails)); // mobile: true, desktop: false
+print(caps.supports(NetworkCapability.wifiDetails));   // Android: true, everywhere else: false
 print(caps.supports(NetworkCapability.icmpPing));      // desktop: true, mobile: false
 ```
 
 Rules baked into `NetworkCapabilities.current()`:
 
-- `nativeDetails` is **mobile-only** (SSID / gateway / MAC / VPN need system APIs).
+- `wifiDetails` (SSID / BSSID / RSSI) is **Android-only** — iOS does not request
+  the *Access WiFi Information* capability, so those fields are always `null`
+  there. On Android they additionally need a runtime permission grant.
+- `nativeDetails` (IP / IPv6 / VPN) is **mobile-only**.
 - `icmpPing` is **desktop-only** (uses the system `ping` binary).
 - On **web** the supported set narrows to `connectivity`, `tcpPing`,
   `dnsSystem`, `speedTest`, `quality` and `benchmark`; every other capability is
@@ -49,29 +56,38 @@ Rules baked into `NetworkCapabilities.current()`:
 
 `NetworkCapabilities.current()` 内置规则：
 
-- `nativeDetails` **仅移动端**（SSID / 网关 / MAC / VPN 需要系统 API）。
+- `wifiDetails`（SSID / BSSID / 信号强度）**仅 Android** —— iOS 未申请
+  *Access WiFi Information* 能力，这些字段在 iOS 上恒为 `null`；Android 上还需运行时授权。
+- `nativeDetails`（IP / IPv6 / VPN）**仅移动端**。
 - `icmpPing` **仅桌面**（使用系统 `ping` 命令）。
 - **Web** 上的支持集合收缩为 `connectivity`、`tcpPing`、`dnsSystem`、`speedTest`、
   `quality` 与 `benchmark`，其余能力均不存在。
 
 ## Native details on desktop / 桌面原生详情
 
-Desktop uses **tier A** by default: the native layer only reports the platform
-version and an (often empty) details map. IP/IPv6 come from Dart
-`NetworkInterface`. As a result:
+Desktop never reports Wi-Fi details, and the three desktop platforms differ in
+how much else they expose:
 
-桌面默认采用 **A 档**：原生层只报告平台版本与（通常为空的）详情 map，IP/IPv6 由 Dart
-`NetworkInterface` 兜底。因此：
+桌面端从不提供 Wi-Fi 详情，三个桌面平台在其余字段上也各不相同：
 
-- **SSID / signal strength are always `null` on desktop.**
-  **桌面上的 SSID / 信号强度恒为 `null`。**
-- `gateway` / `macAddress` / `isVpn` are `null` on macOS and Linux.
-  macOS 与 Linux 上 `gateway` / `macAddress` / `isVpn` 为 `null`。
-- **Windows** additionally implements `GetAdaptersAddresses`, so it reports
-  `gateway` / `macAddress` / DNS / `isVpn` (SSID still `null`). This is a bonus
-  tier-B fragment kept as-is.
-  **Windows** 额外实现了 `GetAdaptersAddresses`，因此上报 `gateway` / `macAddress` /
-  DNS / `isVpn`（SSID 仍为 `null`）。这是保留的 B 档赠品。
+- **SSID / BSSID / signal strength are always `null` on desktop.**
+  **桌面上的 SSID / BSSID / 信号强度恒为 `null`。**
+- **Windows** implements `GetAdaptersAddresses`, so it reports `ipAddress` /
+  `ipv6Address` / `gateway` / `macAddress` / DNS / `isVpn`.
+  **Windows** 实现了 `GetAdaptersAddresses`，因此上报 `ipAddress` / `ipv6Address` /
+  `gateway` / `macAddress` / DNS / `isVpn`。
+- **macOS** shares the Darwin implementation with iOS, so it reports
+  `ipAddress` / `ipv6Address` / `gateway` / `isVpn`.
+  **macOS** 与 iOS 共用 Darwin 实现，因此上报 `ipAddress` / `ipv6Address` /
+  `gateway` / `isVpn`。
+- `gateway` is read from the `sysctl` routing table (the same source as
+  `netstat -rn`), which needs **no permission and no entitlement** — so it is
+  available on Android, iOS, macOS and Windows.
+  `gateway` 从 `sysctl` 路由表读取（与 `netstat -rn` 同源），**不需要任何权限或
+  entitlement**，因此在 Android、iOS、macOS 与 Windows 上都可用。
+- **Linux** returns an empty details map; IP/IPv6 come from Dart
+  `NetworkInterface`.
+  **Linux** 返回空详情 map，IP/IPv6 由 Dart `NetworkInterface` 兜底。
 
 Whatever the platform, a missing permission or an unreachable native call never
 throws — the field simply stays `null` and the rest of the result still arrives.
@@ -87,7 +103,7 @@ instead of throwing:
 
 | Capability | Web | Notes |
 | --- | --- | --- |
-| Connectivity | ✅ | via `connectivity_plus` |
+| Connectivity | ✅ | via the browser's `navigator.onLine` |
 | Ping (`PingMode.tcp`) | ⚠️ | measured as an HTTPS round trip; the target must send CORS headers |
 | Ping (`PingMode.icmp`) | ❌ | throws `UnsupportedError` |
 | DNS (system resolver) | ✅ | via DNS-over-HTTPS |
@@ -106,7 +122,7 @@ Web 构建提供同样的静态 API；浏览器沙箱禁止的能力会优雅降
 
 | 能力 | Web | 说明 |
 | --- | --- | --- |
-| 连通性检测 | ✅ | 通过 `connectivity_plus` |
+| 连通性检测 | ✅ | 通过浏览器的 `navigator.onLine` |
 | Ping（`PingMode.tcp`） | ⚠️ | 以 HTTPS 往返耗时度量，目标主机需下发 CORS 头 |
 | Ping（`PingMode.icmp`） | ❌ | 抛出 `UnsupportedError` |
 | DNS（系统解析器） | ✅ | 通过 DNS-over-HTTPS |
@@ -132,7 +148,7 @@ if (details != null) {
 }
 ```
 
-`details` is always `null` on the web, and usually `null` on desktop too (see
-above).
+`details` is always `null` on the web and on Linux; macOS and Windows populate it
+partially (see above).
 
-Web 上 `details` 恒为 `null`，桌面端通常也为 `null`（见上文）。
+Web 与 Linux 上 `details` 恒为 `null`；macOS 与 Windows 会填充其中一部分字段（见上文）。

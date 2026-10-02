@@ -19,7 +19,7 @@ micro-benchmarks — for Android, iOS, macOS, Windows, Linux and Web (partial).
 [![Dart](https://img.shields.io/badge/Dart-✓-0175C2?logo=dart)](https://dart.dev)
 [![Style: effective dart](https://img.shields.io/badge/style-effective_dart-40c4ff.svg)](https://pub.dev/packages/effective_dart)
 
-> **🔔 Upgrade recommended:** `1.0.5` fixes the upload-speed measurement (no longer inflated by the server response), stops a Web connectivity listener leak, aligns the Web DNS DoH contract with its docs, and adds IPv6 (AAAA) to the raw-UDP resolver. Upgrade to `^1.0.5`.
+> **🔔 Upgrade recommended:** `1.1.0` fixes the macOS ICMP ping timeout unit, HTTP client leaks, iOS VPN false positives and DNS latency/encoding bugs, makes macOS return native network details, and documents exactly which native fields each platform fills. Upgrade to `^1.1.0`.
 
 🌐 **[Official Website](https://www.zerolabsco.com/)** &nbsp;·&nbsp; 📦 **[View on pub.dev](https://pub.dev/packages/zero_network_kit)** &nbsp;·&nbsp; 🔗 **[View on GitHub](https://github.com/zero-labsco/zero_network_kit)**
 
@@ -50,7 +50,7 @@ micro-benchmarks — for Android, iOS, macOS, Windows, Linux and Web (partial).
 
 | Capability | API | Notes |
 | --- | --- | --- |
-| Connectivity | `NetworkDiagnostic.checkConnection()` | Transport, IPv4/IPv6, gateway, SSID, RSSI, MAC, VPN |
+| Connectivity | `NetworkDiagnostic.checkConnection()` | Transport, IPv4/IPv6, gateway, SSID, RSSI, MAC, VPN — [field availability varies by platform](#native-detail-availability) |
 | Connectivity stream | `NetworkDiagnostic.onConnectivityChanged` | Emits a fresh snapshot on every change |
 | Latency | `NetworkDiagnostic.ping()` | TCP handshake RTT everywhere; system ICMP on desktop |
 | DNS | `NetworkDiagnostic.resolve()` | `system` resolver + raw UDP against explicit servers |
@@ -58,7 +58,7 @@ micro-benchmarks — for Android, iOS, macOS, Windows, Linux and Web (partial).
 | Ports | `NetworkDiagnostic.checkPort()` / `scanPorts()` | Bounded-concurrency TCP reachability |
 | Quality | `NetworkDiagnostic.evaluateQuality()` | Weighted 0–100 score + level + suggestions |
 | Full report | `NetworkDiagnostic.diagnose()` | One-shot aggregate of every probe |
-| Capabilities | `NetworkDiagnostic.capabilities` | Query-then-call; hide unsupported cards (e.g. SSID on desktop) |
+| Capabilities | `NetworkDiagnostic.capabilities` | Query-then-call; `wifiDetails` is Android-only, `nativeDetails` is mobile-only |
 | Benchmarks | `NetworkBenchmark.runAll()` | Measures how fast the diagnostics API itself runs |
 
 Design goals:
@@ -74,16 +74,52 @@ Design goals:
 
 ```yaml
 dependencies:
-  zero_network_kit: ^1.0.5
+  zero_network_kit: ^1.1.0
 ```
 
 ### Android permissions
 
 The plugin manifest already declares `INTERNET`, `ACCESS_NETWORK_STATE` and
-`ACCESS_WIFI_STATE`. Reading the Wi-Fi **SSID** additionally requires location
-permission (`ACCESS_FINE_LOCATION`) on Android 8.1+ and the *Access WiFi
-Information* entitlement plus location authorisation on iOS. Without it the
-snapshot simply reports `ssid: null`.
+`ACCESS_WIFI_STATE` — everything the connectivity, ping, DNS, port and speed
+probes need.
+
+Reading the Wi-Fi **SSID / BSSID** is different: it needs a `dangerous`-level
+permission, so the plugin deliberately does **not** declare it (a library
+`<uses-permission>` is merged into every host app, which would force the
+permission — and the Google Play data-safety declaration — onto integrators that
+never read an SSID). Opt in from your **host app**
+(`android/app/src/main/AndroidManifest.xml`) instead:
+
+```xml
+<!-- Android 13+: NEARBY_WIFI_DEVICES replaces the location permission.
+     neverForLocation asserts it is not used to derive a location.
+     Older devices ignore the unknown permission. -->
+<uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES"
+    android:usesPermissionFlags="neverForLocation" />
+
+<!-- Android 8.1 – 12 still needs the location permission. -->
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"
+    android:maxSdkVersion="32" />
+```
+
+Request the grant at runtime as well (Android 6+). Without it
+`getNetworkDetails()` does **not** throw — it simply leaves `ssid` / `bssid`
+empty, per the graceful-degradation contract.
+
+### iOS
+
+No configuration is required. Note what the iOS native layer actually returns:
+
+| Field | iOS | Why |
+| --- | --- | --- |
+| `ipAddress`, `ipv6Address` | ✅ | read via `getifaddrs` on `en0` |
+| `gateway` | ✅ | read from the `sysctl` routing table (same source as `netstat -rn`) |
+| `isVpn` | ✅ | a tunnel interface carrying a routable IPv4 address |
+| `ssid`, `bssid`, `signalStrength` | ❌ always `null` | needs the *Access WiFi Information* capability plus location authorisation; the plugin does not request them |
+| `macAddress` | ❌ always `null` | iOS has returned a constant value since iOS 7 |
+
+Query `NetworkDiagnostic.capabilities` before rendering: `wifiDetails` is
+**Android-only**, `nativeDetails` covers IP / IPv6 / VPN.
 
 ## Usage
 
@@ -268,6 +304,27 @@ NetworkDiagnostic.configure(
 | Linux | ✅ Supported (C++ native side) |
 | Web | ⚠️ Partial — see [Web support](#web-support) below |
 
+### Native detail availability
+
+Which fields of `NetworkConnectionInfo` are actually populated, per platform.
+Anything not listed is `null`; a missing permission never throws.
+
+| Field | Android | iOS | macOS | Windows | Linux | Web |
+| --- | --- | --- | --- | --- | --- | --- |
+| `ipAddress` / `ipv6Address` | ✅ | ✅ | ✅ | ✅ | ✅ Dart fallback | ❌ |
+| `isVpn` | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| `gateway` | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| `macAddress` | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
+| `ssid` / `bssid` | ✅ needs [grant](#android-permissions) | ❌ | ❌ | ❌ | ❌ | ❌ |
+| `signalStrength` | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+
+`gateway` is read from the `sysctl` routing table on Android, iOS, macOS and
+Windows — it needs no permission or entitlement, so it is available wherever the
+native layer is implemented (Linux and Web are the exceptions).
+
+`NetworkDiagnostic.capabilities` mirrors this as two flags: `wifiDetails`
+(Android only) and `nativeDetails` (mobile only).
+
 ### Web support
 
 The web build exposes the same static API. Capabilities that the browser sandbox
@@ -276,7 +333,7 @@ instead of throwing:
 
 | Capability | Web | Notes |
 | --- | --- | --- |
-| Connectivity | ✅ | via `connectivity_plus` |
+| Connectivity | ✅ | via the browser's `navigator.onLine` |
 | Ping (`PingMode.tcp`) | ⚠️ | HTTPS round trip; the target must send CORS headers |
 | Ping (`PingMode.icmp`) | ❌ | throws `UnsupportedError` |
 | DNS (system resolver) | ✅ | via DNS-over-HTTPS |

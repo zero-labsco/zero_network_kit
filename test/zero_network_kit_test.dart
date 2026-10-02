@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:zero_network_kit/zero_network_kit.dart';
 import 'package:zero_network_kit/advanced.dart';
@@ -77,6 +78,50 @@ void main() {
     expect(NetworkDiagnostic.pingService, same(ping));
     expect(NetworkDiagnostic.qualityService.ping, same(ping));
   });
+
+  test('never closes an externally supplied http client', () async {
+    final external = CountingHttpClient();
+
+    ZeroNetworkKit.init(httpClient: external);
+    await ZeroNetworkKit.dispose();
+
+    // 外部客户端的生命周期归调用方所有，插件不得关闭它 / An externally supplied
+    // client belongs to the caller and must never be closed by the plugin.
+    expect(external.closeCount, 0);
+  });
+
+  test('init without a config keeps the diagnostic configuration', () async {
+    NetworkDiagnostic.configure(
+      config: const NetworkDiagnosticConfig(pingHost: '9.9.9.9'),
+    );
+
+    ZeroNetworkKit.init();
+
+    // 两份配置此前会互相覆盖：`init()` 会把 NetworkDiagnostic 的配置打回默认值 /
+    // The two used to overwrite each other: `init()` reset the diagnostic config
+    // back to the defaults.
+    expect(ZeroNetworkKit.config.pingHost, '9.9.9.9');
+    expect(NetworkDiagnostic.config.pingHost, '9.9.9.9');
+
+    await ZeroNetworkKit.dispose();
+    expect(ZeroNetworkKit.config.pingHost, '1.1.1.1');
+  });
+}
+
+/// 统计 `close()` 调用次数的 HTTP 客户端 / HTTP client that counts `close()`.
+class CountingHttpClient extends http.BaseClient {
+  final http.Client _delegate = http.Client();
+  int closeCount = 0;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) =>
+      _delegate.send(request);
+
+  @override
+  void close() {
+    closeCount += 1;
+    _delegate.close();
+  }
 }
 
 /// 仅用于验证服务注入的假实现 / Fake implementation used to verify injection.

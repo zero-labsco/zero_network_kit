@@ -63,12 +63,18 @@ class PingService {
     required Duration interval,
     required int port,
   }) async {
+    // 先解析一次目标地址：否则每次探测都会把域名解析耗时计进往返时间，
+    // `jitter` 也会被解析缓存的抖动污染 / Resolve the target once; otherwise
+    // every probe bills the DNS lookup to the round trip time and pollutes
+    // `jitter` with resolver-cache noise.
+    final target = await _resolveTarget(host);
+
     final times = <double>[];
     for (var i = 0; i < count; i++) {
       if (i > 0 && interval > Duration.zero) {
         await Future<void>.delayed(interval);
       }
-      final elapsed = await _probeTcp(host, port, timeout);
+      final elapsed = await _probeTcp(target, port, timeout);
       if (elapsed != null) times.add(elapsed);
     }
 
@@ -83,8 +89,23 @@ class PingService {
     );
   }
 
+  /// 把主机名解析为 [InternetAddress]，失败时原样返回主机名 /
+  /// Resolves [host] to an [InternetAddress], falling back to the raw host.
+  static Future<Object> _resolveTarget(String host) async {
+    final parsed = InternetAddress.tryParse(host);
+    if (parsed != null) return parsed;
+    try {
+      final addresses = await InternetAddress.lookup(host);
+      if (addresses.isNotEmpty) return addresses.first;
+    } catch (_) {
+      // 解析失败时交回主机名，让 Socket.connect 自己报错 /
+      // Hand the raw host back so Socket.connect reports the failure.
+    }
+    return host;
+  }
+
   static Future<double?> _probeTcp(
-    String host,
+    Object host,
     int port,
     Duration timeout,
   ) async {
@@ -101,6 +122,39 @@ class PingService {
     }
   }
 
+  /// 构造系统 `ping` 命令的参数 / Builds the arguments for the system `ping`.
+  ///
+  /// 三个平台的超时单位**互不相同**，必须分别处理 / The timeout unit differs on
+  /// every platform and must be handled separately:
+  /// - Windows `-w`：毫秒 / milliseconds;
+  /// - macOS (BSD) `-W`：毫秒 / milliseconds;
+  /// - Linux (iputils) `-W`：**秒**，且必须 ≥ 1 / **seconds**, and must be ≥ 1.
+  ///
+  /// macOS 曾误用 Linux 的「秒」语义，导致 `-W 3` 被解释成 3 毫秒、所有探测必然
+  /// 超时 / macOS previously reused the Linux "seconds" meaning, so `-W 3` was
+  /// read as 3 ms and every probe timed out.
+  static List<String> icmpArgs({
+    required String host,
+    required int count,
+    required Duration timeout,
+    required bool isWindows,
+    required bool isMacOS,
+  }) {
+    if (isWindows) {
+      return <String>['-n', '$count', '-w', '${timeout.inMilliseconds}', host];
+    }
+    if (isMacOS) {
+      return <String>['-c', '$count', '-W', '${timeout.inMilliseconds}', host];
+    }
+    return <String>[
+      '-c',
+      '$count',
+      '-W',
+      '${math.max(1, timeout.inSeconds)}',
+      host,
+    ];
+  }
+
   Future<PingResult> _icmpPing({
     required String host,
     required int count,
@@ -113,15 +167,13 @@ class PingService {
       );
     }
 
-    final args = Platform.isWindows
-        ? <String>['-n', '$count', '-w', '${timeout.inMilliseconds}', host]
-        : <String>[
-            '-c',
-            '$count',
-            '-W',
-            '${math.max(1, timeout.inSeconds)}',
-            host,
-          ];
+    final args = icmpArgs(
+      host: host,
+      count: count,
+      timeout: timeout,
+      isWindows: Platform.isWindows,
+      isMacOS: Platform.isMacOS,
+    );
 
     final process = await Process.run(
       'ping',

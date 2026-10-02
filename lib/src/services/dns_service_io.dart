@@ -121,6 +121,7 @@ class DnsService {
     RawDatagramSocket? socket;
     StreamSubscription<RawSocketEvent>? subscription;
     Timer? timer;
+    Timer? graceTimer;
 
     try {
       final target = await _resolveServer(server).timeout(timeout);
@@ -152,7 +153,20 @@ class DnsService {
       var aaaaDone = false;
 
       void maybeComplete() {
-        if (aDone && aaaaDone && !completer.isCompleted) completer.complete();
+        if (completer.isCompleted) return;
+        if (aDone && aaaaDone) {
+          completer.complete();
+          return;
+        }
+        if (!aDone && !aaaaDone) return;
+        // 首个应答到达后只再给兄弟查询一小段宽限：否则 AAAA 被丢弃时本次查询会
+        // 硬等到超时上限，20 ms 的解析被记成 5 s，评分直接归零 / Once one answer
+        // arrives, grant the sibling query a short grace period only; otherwise a
+        // dropped AAAA response stretches the run to the full timeout and a 20 ms
+        // lookup is reported as 5 s, zeroing the quality score.
+        graceTimer ??= Timer(siblingGrace(timeout), () {
+          if (!completer.isCompleted) completer.complete();
+        });
       }
 
       subscription = udp.listen(
@@ -219,9 +233,24 @@ class DnsService {
       );
     } finally {
       timer?.cancel();
+      graceTimer?.cancel();
       await subscription?.cancel();
       socket?.close();
     }
+  }
+
+  /// A 与 AAAA 这对兄弟查询的额外等待窗口 / Grace window granted to the sibling
+  /// of an already answered A / AAAA query.
+  ///
+  /// 取超时的五分之一，并夹在 100 ms – 1 s 之间：够收到正常的第二个应答，又不
+  /// 会让丢包场景拖垮整次测量 / One fifth of the timeout, clamped to
+  /// 100 ms – 1 s: enough for a healthy second answer, short enough that a lost
+  /// one cannot wreck the measurement.
+  static Duration siblingGrace(Duration timeout) {
+    final raw = timeout.inMilliseconds ~/ 5;
+    if (raw < 100) return const Duration(milliseconds: 100);
+    if (raw > 1000) return const Duration(seconds: 1);
+    return Duration(milliseconds: raw);
   }
 
   static Future<InternetAddress> _resolveServer(String server) async {

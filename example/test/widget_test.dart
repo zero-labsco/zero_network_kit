@@ -24,9 +24,9 @@ void main() {
         .setMockMethodCallHandler(channel, null);
   });
 
-  testWidgets('renders the full diagnostic dashboard', (tester) async {
-    // Give the ListView a tall viewport so every probe card is built and
-    // asserted (ListView builds children lazily, below the fold by default).
+  testWidgets('renders the dashboard sections and actions', (tester) async {
+    // Give the ListView a tall viewport so every section is built and asserted
+    // (ListView builds children lazily, below the fold by default).
     tester.view
       ..physicalSize = const Size(800, 2000)
       ..devicePixelRatio = 1;
@@ -34,16 +34,27 @@ void main() {
     await tester.pumpWidget(const ZeroNetworkKitExampleApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Zero Network Kit'), findsWidgets);
-    expect(find.widgetWithText(FilledButton, 'Run'), findsWidgets);
+    expect(find.text('zero_network_kit'), findsOneWidget);
+    expect(find.text('Environment'), findsOneWidget);
+    expect(find.text('Run'), findsOneWidget);
+    expect(
+      find.widgetWithText(FilledButton, 'Full diagnostic'),
+      findsOneWidget,
+    );
 
-    expect(find.text('Connection'), findsOneWidget);
-    expect(find.text('Ping'), findsOneWidget);
-    expect(find.text('DNS'), findsOneWidget);
-    expect(find.text('Speed test'), findsOneWidget);
-    expect(find.text('Quality score'), findsOneWidget);
-    expect(find.text('Full diagnostic'), findsOneWidget);
-    expect(find.text('Benchmark the API'), findsOneWidget);
+    // 端口扫描在 Web 上不可用，故不在断言里固定要求 / Port scanning is unavailable
+    // on the web, so it is not asserted unconditionally.
+    for (final label in <String>[
+      'Connection',
+      'Ping',
+      'DNS',
+      'Speed',
+      'Quality',
+      'Benchmark',
+      'Watch',
+    ]) {
+      expect(find.widgetWithText(OutlinedButton, label), findsOneWidget);
+    }
   });
 
   testWidgets('shows the platform version once resolved', (tester) async {
@@ -53,6 +64,8 @@ void main() {
 
     await tester.pumpWidget(const ZeroNetworkKitExampleApp());
     await tester.pumpAndSettle();
-    expect(find.textContaining('platform:'), findsOneWidget);
+
+    // The stubbed channel reports "Test"; it lands in the `platform` row.
+    expect(find.text('Test'), findsOneWidget);
   });
 }

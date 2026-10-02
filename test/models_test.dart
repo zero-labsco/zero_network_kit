@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zero_network_kit/zero_network_kit.dart';
 
@@ -187,6 +189,51 @@ void main() {
       );
       expect(dns.responseTimeMs, closeTo(2, 0.0001));
       expect(dns.primaryAddress, '93.184.216.34');
+    });
+
+    test('averageLatency ignores failed results', () {
+      DnsTestResult result({required bool isSuccess, required int millis}) =>
+          DnsTestResult(
+            server: '1.1.1.1',
+            domain: 'example.com',
+            isSuccess: isSuccess,
+            responseTime: Duration(milliseconds: millis),
+            timestamp: DateTime.now(),
+          );
+
+      // 失败项的耗时等于超时上限，混进来会把整批结果拉到不可信的水平 /
+      // A failure costs the full timeout, so averaging it in is meaningless.
+      expect(
+        DnsTestResult.averageLatency(<DnsTestResult>[
+          result(isSuccess: true, millis: 20),
+          result(isSuccess: false, millis: 5000),
+        ]),
+        20,
+      );
+      expect(
+        DnsTestResult.averageLatency(<DnsTestResult>[
+          result(isSuccess: false, millis: 5000),
+        ]),
+        isNull,
+      );
+      expect(DnsTestResult.averageLatency(const <DnsTestResult>[]), isNull);
+    });
+  });
+
+  group('NetworkCapabilities', () {
+    test('scopes the native detail flags to the platforms that fill them', () {
+      final caps = NetworkCapabilities.current();
+
+      // Android 是唯一真正读取 SSID / BSSID / RSSI 的平台；iOS 未申请
+      // *Access WiFi Information* 能力 / Android is the only platform whose
+      // native layer reads SSID / BSSID / RSSI; iOS never requests the
+      // *Access WiFi Information* capability.
+      expect(caps.supports(NetworkCapability.wifiDetails), Platform.isAndroid);
+      expect(
+        caps.supports(NetworkCapability.nativeDetails),
+        Platform.isAndroid || Platform.isIOS,
+      );
+      expect(caps.supports(NetworkCapability.quality), isTrue);
     });
   });
 }

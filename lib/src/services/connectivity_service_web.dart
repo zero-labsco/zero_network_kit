@@ -129,13 +129,34 @@ class ConnectivityService {
     return info.copyWith(isReachable: await _safeProbe(probeTimeout));
   }
 
+  Stream<NetworkConnectionInfo>? _changes;
+
   /// 监听网络连接变化 / Emits a fresh snapshot whenever connectivity changes.
-  Stream<NetworkConnectionInfo> get onConnectivityChanged async* {
-    yield await checkConnection();
-    await for (final _ in _adapter.onConnectivityChanged) {
-      yield await checkConnection();
-    }
-  }
+  ///
+  /// 该流被缓存并支持多订阅，避免多个订阅者各自重复执行一次完整采集（亦见原生
+  /// 版实现）/ Cached and multi-subscription so N subscribers do not run the
+  /// whole sampling N times (see the native implementation too).
+  Stream<NetworkConnectionInfo> get onConnectivityChanged =>
+      _changes ??= Stream<NetworkConnectionInfo>.multi((controller) {
+        StreamSubscription<List<String>>? subscription;
+        var active = true;
+
+        Future<void> emit() async {
+          if (!active) return;
+          final snapshot = await checkConnection();
+          if (!active) return;
+          controller.add(snapshot);
+        }
+
+        unawaited(emit());
+        subscription = _adapter.onConnectivityChanged.listen((_) {
+          unawaited(emit());
+        });
+        controller.onCancel = () {
+          active = false;
+          unawaited(subscription?.cancel());
+        };
+      });
 
   Future<List<String>> _safeTransports() async {
     try {

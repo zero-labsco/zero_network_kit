@@ -1,5 +1,91 @@
 # Changelog
 
+## 1.1.0
+
+### Fixed / 修复
+
+- **macOS ICMP ping** — the system `ping` timeout unit is now per platform:
+  `-w` (Windows) and `-W` (macOS/BSD) take **milliseconds** while `-W` (Linux
+  iputils) takes **seconds**. macOS previously reused the Linux meaning, so a
+  3 s timeout was passed as `3` → 3 ms and every probe timed out.
+  - **macOS ICMP ping**——系统 `ping` 的超时单位改为按平台区分：`-w`（Windows）与
+    `-W`（macOS/BSD）以**毫秒**为单位，而 `-W`（Linux iputils）以**秒**为单位。
+    此前 macOS 误用了 Linux 的语义，3 秒超时被当作 3 毫秒，导致探测必然超时。
+- **TCP ping no longer bills DNS resolution** — the host is resolved once before
+  the probes, so lookup time (and its cache jitter) is no longer counted as round
+  trip time.
+  - **TCP ping 不再计入域名解析耗时**——探测前先解析一次目标地址，解析耗时（及其缓存抖动）不再被算作往返时间。
+- **HTTP client leaks** — `runSpeedTest` now creates its client inside `try`, and
+  `ZeroNetworkKit.init` closes the previously owned client before adopting a new
+  one, so neither a throwing ping nor a second `init(httpClient: …)` can leak it.
+  - **HTTP 客户端泄漏**——`runSpeedTest` 改为在 `try` 内创建客户端，`ZeroNetworkKit.init` 在启用新客户端前先关闭旧的，ping 抛异常或再次 `init(httpClient: …)` 都不会再泄漏。
+- **Configuration state** — `ZeroNetworkKit.config` now forwards to
+  `NetworkDiagnostic.config` instead of keeping a second copy, so `init()` no
+  longer silently resets a configuration applied through `configure()`.
+  - **配置状态**——`ZeroNetworkKit.config` 改为直接转发 `NetworkDiagnostic.config`，不再另存一份副本，`init()` 不会再无声重置通过 `configure()` 设置的配置。
+- **DNS latency inflation** — a lost AAAA answer no longer stretches the raw-UDP
+  lookup to the full timeout; once one of the paired A / AAAA queries answers, the
+  sibling gets a short grace window (⅕ of the timeout, clamped to 100 ms – 1 s).
+  A 20 ms lookup was previously reported as the full 5 s timeout.
+  - **DNS 延迟虚高**——AAAA 应答丢失不再把原始 UDP 查询拖到超时上限；A / AAAA 中任一应答到达后，另一项只获得一个短宽限窗口（超时的五分之一，夹在 100 毫秒至 1 秒）。此前一次 20 毫秒的解析会被记成 5 秒。
+- **Non-ASCII DNS queries** — query labels are encoded with UTF-8 instead of
+  `String.codeUnits`, which silently truncated any code unit above 255 (e.g. CJK
+  domains) into a corrupt message.
+  - **非 ASCII DNS 查询**——查询标签改用 UTF-8 编码，此前使用 `String.codeUnits` 会把大于 255 的码元（如中文域名）静默截断成错误报文。
+- **Offline no longer reported as online** — `NetworkConnectionInfo.isConnected`
+  only falls back to a local IP when the connectivity adapter reported nothing at
+  all; an explicit `none` wins, so a VM / Docker-bridge IP cannot mask an offline
+  device.
+  - **离线不再被判为在线**——`NetworkConnectionInfo.isConnected` 仅在连通性适配器完全没给出结论时才用本地 IP 兜底；适配器明确报告的 `none` 优先，虚拟机 / Docker 网桥的 IP 不再掩盖离线状态。
+- **iOS VPN false positives** — `isVpn` no longer matches any `utun` interface:
+  iOS keeps several of them alive (AWDL, AirDrop, Private Relay), so a tunnel now
+  requires a routable IPv4 address.
+  - **iOS VPN 误判**——`isVpn` 不再只要存在 `utun` 接口就为真：iOS 常驻多个此类接口（AWDL、AirDrop、私隐中转），现要求其拥有可路由的 IPv4 地址才认定为隧道。
+- **macOS native details** — `getNetworkDetails` returns IP / IPv6 / VPN like the
+  iOS implementation instead of an empty map; the two Darwin sources now share the
+  same `getifaddrs` logic.
+  - **macOS 原生详情**——`getNetworkDetails` 改为像 iOS 那样返回 IP / IPv6 / VPN，而非空 map；两个 Darwin 平台现在共用同一套 `getifaddrs` 逻辑。
+- **Web DoH** — the domain is passed through `Uri.queryParameters` (so `&`,
+  `=` and Unicode can no longer break the query) and AAAA is queried alongside A,
+  matching the native resolver.
+  - **Web 端 DoH**——域名改为通过 `Uri.queryParameters` 传递（`&`、`=` 与 Unicode 字符不再破坏查询串），并同时查询 AAAA，与原生解析器保持一致。
+
+### Changed / 变更
+
+- **`diagnose()` runs its independent probes concurrently** — latency, DNS and
+  port probes now run together, and each is individually guarded, so the round
+  lasts as long as the slowest probe and a failing sub-test can never abort the
+  run (previously only the speed test was guarded).
+  - **`diagnose()` 并发执行独立探测**——延迟、DNS 与端口探测现在同时执行并各自兜住异常，整轮耗时等于最慢的一项，且任何子项失败都不会中断整体流程（此前只有测速被保护）。
+- **Benchmark throughput** — `operationsPerSecond` is derived from the successful
+  iterations only; failed ones (typically a full timeout each) no longer dilute it.
+  - **基准吞吐**——`operationsPerSecond` 只依据成功的迭代计算，失败迭代（通常各占满一次超时）不再稀释该数值。
+
+### Added / 新增
+
+- **`gateway` on iOS and macOS** — the default IPv4 gateway is now read from the
+  `sysctl` routing table (the same source as `netstat -rn`), so `gateway` is
+  populated on iOS and macOS too. This needs **no permission, no entitlement and
+  no extra framework** — unlike SSID / RSSI, which stay `null` on iOS. `gateway`
+  is now available on Android, iOS, macOS and Windows; only Linux and Web report
+  `null`.
+  - **iOS 与 macOS 的 `gateway`**——默认 IPv4 网关改为从 `sysctl` 路由表读取（与 `netstat -rn` 同源），因此 iOS 与 macOS 上该字段也有值了。这**不需要任何权限、entitlement 或额外 framework**——与 iOS 上仍为 `null` 的 SSID / 信号强度不同。`gateway` 现在在 Android、iOS、macOS 与 Windows 上可用，仅 Linux 与 Web 为 `null`。
+- **`NetworkCapability.wifiDetails`** — a new capability flag for SSID / BSSID /
+  signal strength. It is **Android-only**: iOS does not request the *Access WiFi
+  Information* capability and desktop / web never read Wi-Fi details, so
+  `nativeDetails` alone was too coarse and made UIs render rows that are always
+  empty.
+  - **`NetworkCapability.wifiDetails`**——新增的 SSID / BSSID / 信号强度能力标志，**仅 Android**：iOS 未申请 *Access WiFi Information* 能力，桌面与 Web 从不读取 Wi-Fi 详情，仅凭 `nativeDetails` 过于粗糙，会让 UI 渲染出恒为空的行。
+- **`DnsTestResult.averageLatency`** — shared helper returning the mean response
+  time of the successful results, or `null` when all of them failed. Failures are
+  excluded because their duration is the full timeout.
+  - **`DnsTestResult.averageLatency`**——共享辅助方法，返回成功结果的平均响应耗时，全部失败时为 `null`。失败项被排除，因为其耗时等于超时上限。
+- **`PingService.icmpArgs` / `DnsService.siblingGrace`** — exposed so the
+  per-platform ICMP timeout unit and the A/AAAA grace window can be unit tested.
+  Both throw / return zero on the web, which keeps the two platform branches of
+  the conditional export API-compatible.
+  - **`PingService.icmpArgs` / `DnsService.siblingGrace`**——对外暴露，以便对分平台的 ICMP 超时单位与 A/AAAA 宽限窗口做单元测试。Web 分支分别抛错 / 返回零，从而让条件导出的两个分支保持 API 兼容。
+
 ## 1.0.5
 
 ### Fixed / 修复

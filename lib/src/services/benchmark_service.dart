@@ -37,7 +37,11 @@ class BenchmarkService {
 
     final samples = <int>[];
     var failures = 0;
-    final suiteWatch = Stopwatch()..start();
+    // 只累计**成功**迭代的耗时：把失败迭代（通常等于一次完整超时）算进分母会让
+    // 每秒操作数被稀释得毫无意义 / Only successful iterations are accumulated;
+    // billing failed ones (typically a full timeout each) to the denominator
+    // dilutes the ops/s figure into meaninglessness.
+    var measuredMicros = 0;
 
     for (var i = 0; i < totalIterations; i++) {
       final stopwatch = Stopwatch()..start();
@@ -45,17 +49,17 @@ class BenchmarkService {
         await task(i);
         stopwatch.stop();
         samples.add(stopwatch.elapsedMicroseconds);
+        measuredMicros += stopwatch.elapsedMicroseconds;
       } catch (_) {
         failures += 1;
       }
       onProgress?.call(i + 1, totalIterations);
     }
 
-    suiteWatch.stop();
     return BenchmarkResult.fromSamples(
       testName: testName,
       samples: samples,
-      totalDuration: suiteWatch.elapsed,
+      totalDuration: Duration(microseconds: measuredMicros),
       failures: failures,
       timestamp: DateTime.now(),
     );
