@@ -84,9 +84,8 @@ class DnsService {
   }) async {
     final stopwatch = Stopwatch()..start();
     try {
-      final addresses = await InternetAddress.lookup(
-        domain,
-      ).timeout(timeout ?? defaultTimeout);
+      final addresses = await InternetAddress.lookup(domain)
+          .timeout(timeout ?? defaultTimeout);
       stopwatch.stop();
       return DnsTestResult(
         server: 'system',
