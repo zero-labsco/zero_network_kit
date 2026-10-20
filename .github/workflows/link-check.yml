@@ -15,7 +15,9 @@ on:
       - 'README.md'
       - 'README_zh.md'
       - 'CHANGELOG.md'
-      - 'docs/**'
+      # The generated docs/ export was removed; the site source now lives in
+      # website/pages/. 生成的 docs/ 产物已移除，站点源码位于 website/pages/。
+      - 'website/pages/**'
   # Allow manual runs from the Actions tab.
   # 允许在 Actions 页手动触发。
   workflow_dispatch:
@@ -43,7 +45,7 @@ jobs:
             --timeout 20
             --retry-wait-time 2
             --max-retries 2
-            README.md README_zh.md CHANGELOG.md "docs/**"
+            README.md README_zh.md CHANGELOG.md "website/pages/**"
           fail: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
