@@ -2,8 +2,33 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:zero_network_kit/zero_network_kit.dart';
 import 'package:zero_network_kit/advanced.dart';
+
+/// 原始平台实例，测试替换后用于恢复 / The original platform instance, used to
+/// restore state after a test replaces it.
+final ZeroNetworkKitPlatform _initialPlatform = ZeroNetworkKitPlatform.instance;
+
+/// 返回完整原生详情（含 BSSID / DNS）的假平台实现 / Fake platform returning the
+/// full native detail set, including BSSID and DNS server.
+class _FakeNativeDetailsPlatform
+    with MockPlatformInterfaceMixin
+    implements ZeroNetworkKitPlatform {
+  @override
+  Future<String?> getPlatformVersion() async => 'fake';
+
+  @override
+  Future<Map<String, Object?>?> getNetworkDetails() async => <String, Object?>{
+    'ipAddress': '192.168.1.10',
+    'gateway': '192.168.1.1',
+    'ssid': 'zero-labs',
+    'bssid': 'aa:bb:cc:dd:ee:ff',
+    'dnsServer': '192.168.1.1',
+    'signalStrength': -55,
+    'isVpn': false,
+  };
+}
 
 /// 可控的连通性数据源 / A controllable connectivity source.
 class FakeConnectivityAdapter implements ConnectivityAdapter {
@@ -121,6 +146,24 @@ void main() {
         service.onConnectivityChanged,
         same(service.onConnectivityChanged),
       );
+    });
+
+    test('surfaces bssid and dnsServer from the native details', () async {
+      // 这两个键由 Android / Windows 原生层产出，此前从未被 Dart 侧消费 /
+      // Both keys are produced by the Android / Windows native layers and used
+      // to be dropped by the Dart side.
+      ZeroNetworkKitPlatform.instance = _FakeNativeDetailsPlatform();
+      addTearDown(() {
+        ZeroNetworkKitPlatform.instance = _initialPlatform;
+      });
+
+      final info = await ConnectivityService(
+        adapter: FakeConnectivityAdapter(<String>['wifi']),
+      ).checkConnection();
+
+      expect(info.bssid, 'aa:bb:cc:dd:ee:ff');
+      expect(info.dnsServer, '192.168.1.1');
+      expect(info.ssid, 'zero-labs');
     });
   });
 
@@ -333,6 +376,68 @@ void main() {
       ]);
     });
   });
+
+  group('QualityService', () {
+    test(
+      'falls back to the speed-test latency when no ping was requested',
+      () async {
+        final speedTest = _FakeSpeedTestService();
+        final service = QualityService(
+          connectivityService: _StaticConnectivityService(),
+          speedTestService: speedTest,
+        );
+
+        final score = await service.evaluateQuality(
+          config: const NetworkDiagnosticConfig(),
+          includePing: false,
+          includeDns: false,
+          includeSpeedTest: true,
+        );
+
+        // 未单独跑延迟探测时，测速必须自己带上一次探测，否则 `speed.ping` 恒为 0、
+        // 回退永远取不到值（此前它是一段死代码）/ With no standalone ping the speed
+        // test must run the probe itself; otherwise `speed.ping` stays 0 and the
+        // fallback can never fire (it used to be dead code).
+        expect(speedTest.includePingSeen, isTrue);
+        expect(score.metrics['latency'], 25);
+      },
+    );
+
+    test(
+      'does not repeat the probe when a standalone ping already ran',
+      () async {
+        final speedTest = _FakeSpeedTestService();
+        final service = QualityService(
+          connectivityService: _StaticConnectivityService(),
+          speedTestService: speedTest,
+        );
+
+        await service.evaluateQuality(
+          config: const NetworkDiagnosticConfig(),
+          includePing: false,
+          includeDns: false,
+          includeSpeedTest: true,
+        );
+
+        // 单独跑过 ping 之后，测速不该再重复一次探测 / Once a standalone ping ran,
+        // the speed test must not probe again.
+        expect(speedTest.includePingSeen, isTrue);
+
+        final second = _FakeSpeedTestService();
+        await QualityService(
+          connectivityService: _StaticConnectivityService(),
+          pingService: _FakePingService(),
+          speedTestService: second,
+        ).evaluateQuality(
+          config: const NetworkDiagnosticConfig(),
+          includePing: true,
+          includeDns: false,
+          includeSpeedTest: true,
+        );
+        expect(second.includePingSeen, isFalse);
+      },
+    );
+  });
 }
 
 Future<int> _freePort() async {
@@ -350,4 +455,76 @@ class _ThrowingAdapter implements ConnectivityAdapter {
   @override
   Stream<List<String>> get onConnectivityChanged =>
       const Stream<List<String>>.empty();
+}
+
+/// 固定返回「已连接」的连通性服务，避免测试访问真实平台通道 / Connectivity
+/// service that is always online so tests never touch a real platform channel.
+class _StaticConnectivityService extends ConnectivityService {
+  _StaticConnectivityService()
+    : super(adapter: FakeConnectivityAdapter(<String>['wifi']));
+
+  @override
+  Future<NetworkConnectionInfo> checkConnection({
+    bool includeNativeDetails = true,
+    bool probeReachability = false,
+    Duration probeTimeout = const Duration(seconds: 3),
+  }) async {
+    return NetworkConnectionInfo(
+      isConnected: true,
+      type: NetworkType.wifi,
+      timestamp: DateTime.now(),
+    );
+  }
+}
+
+/// 记录 `includePing` 并返回固定速率与延迟的测速服务 / Speed-test service that
+/// records `includePing` and returns a fixed throughput and latency.
+class _FakeSpeedTestService extends SpeedTestService {
+  bool? includePingSeen;
+
+  @override
+  Future<SpeedTestResult> runSpeedTest({
+    String downloadUrl = 'https://speed.cloudflare.com/__down?bytes=25000000',
+    String? uploadUrl,
+    Duration timeout = const Duration(seconds: 30),
+    Duration maxDuration = const Duration(seconds: 10),
+    Duration pingTimeout = const Duration(seconds: 3),
+    int uploadPayloadBytes = 1048576,
+    String? pingHost,
+    int pingCount = 4,
+    bool includeUpload = true,
+    bool includePing = true,
+    void Function(SpeedTestProgress progress)? onProgress,
+  }) async {
+    includePingSeen = includePing;
+    return SpeedTestResult(
+      downloadSpeed: 80,
+      uploadSpeed: 20,
+      ping: 25,
+      jitter: 4,
+      timestamp: DateTime.now(),
+    );
+  }
+}
+
+/// 恒定成功的延迟服务，避免测试发起真实网络请求 / Latency service that always
+/// succeeds, so tests never hit the network.
+class _FakePingService extends PingService {
+  @override
+  Future<PingResult> ping({
+    required String host,
+    int count = 4,
+    Duration timeout = const Duration(seconds: 3),
+    Duration interval = const Duration(milliseconds: 200),
+    int? port,
+    PingMode mode = PingMode.tcp,
+  }) async {
+    return PingResult(
+      host: host,
+      sent: count,
+      received: count,
+      times: const <double>[10],
+      timestamp: DateTime.now(),
+    );
+  }
 }

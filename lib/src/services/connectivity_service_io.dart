@@ -100,11 +100,13 @@ class ConnectivityService {
       isConnected: types.isNotEmpty || (transports.isEmpty && hasAnyAddress),
       type: _resolveType(types),
       ssid: _asString(native?['ssid']),
+      bssid: _asString(native?['bssid']),
       signalStrength: (native?['signalStrength'] as num?)?.toInt(),
       ipAddress: _asString(native?['ipAddress']) ?? fallback.ipAddress,
       ipv6Address: _asString(native?['ipv6Address']) ?? fallback.ipv6Address,
       gateway: _asString(native?['gateway']),
       macAddress: _asString(native?['macAddress']),
+      dnsServer: _asString(native?['dnsServer']),
       isVpn: native?['isVpn'] == true || types.contains(NetworkType.vpn),
       timestamp: DateTime.now(),
     );

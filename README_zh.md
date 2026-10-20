@@ -18,7 +18,7 @@
 [![Dart](https://img.shields.io/badge/Dart-✓-0175C2?logo=dart)](https://dart.dev)
 [![Style: effective dart](https://img.shields.io/badge/style-effective_dart-40c4ff.svg)](https://pub.dev/packages/effective_dart)
 
-> **🔔 推荐升级：** `1.1.0` 修正了 macOS 上 ICMP ping 的超时单位、HTTP 客户端泄漏、iOS 的 VPN 误判以及 DNS 的延迟与编码问题，让 macOS 原生层返回网络详情，并明确记录了各平台实际填充哪些原生字段。建议升级到 `^1.1.0`。
+> **🔔 推荐升级：** `1.2.0` 补上了原生层早已产出却从未被消费的 BSSID 与 DNS 服务器字段，修正了 macOS / Windows 上 `nativeDetails` 能力被误标为不支持（这两个平台其实有值）的问题，并让「未单独跑 ping 时回退到测速延迟」的逻辑真正生效；门面现在支持配置 `pingTimeout` / `dnsTimeout`。建议升级到 `^1.2.0`。
 
 🌐 **[官方网站](https://www.zerolabsco.com/)** &nbsp;·&nbsp; 📦 **[在 pub.dev 查看](https://pub.dev/packages/zero_network_kit)** &nbsp;·&nbsp; 🔗 **[查看 GitHub 仓库](https://github.com/zero-labsco/zero_network_kit)**
 
@@ -72,7 +72,7 @@
 
 ```yaml
 dependencies:
-  zero_network_kit: ^1.1.0
+  zero_network_kit: ^1.2.0
 ```
 
 ### Android 权限

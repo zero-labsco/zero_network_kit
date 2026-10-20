@@ -1,7 +1,3 @@
-# Exclude the GitHub Pages documentation site from the published package.
-# The docs/ folder is served via GitHub Pages, not distributed through pub.dev.
-docs/
-
 # Project-internal agent/IDE data — must not be published to pub.dev.
 .codebuddy/
 
@@ -13,3 +9,8 @@ CONTRIBUTING.md
 
 # Local build artifacts (test caches, native assets) — not needed by consumers.
 build/
+
+# The documentation site source. The site itself is published to the gh-pages
+# branch by CI, and its sources are not needed by package consumers.
+# 文档站点源码。站点由 CI 发布到 gh-pages 分支，其源码对包使用者无用处。
+website/

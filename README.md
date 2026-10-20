@@ -19,7 +19,7 @@ micro-benchmarks — for Android, iOS, macOS, Windows, Linux and Web (partial).
 [![Dart](https://img.shields.io/badge/Dart-✓-0175C2?logo=dart)](https://dart.dev)
 [![Style: effective dart](https://img.shields.io/badge/style-effective_dart-40c4ff.svg)](https://pub.dev/packages/effective_dart)
 
-> **🔔 Upgrade recommended:** `1.1.0` fixes the macOS ICMP ping timeout unit, HTTP client leaks, iOS VPN false positives and DNS latency/encoding bugs, makes macOS return native network details, and documents exactly which native fields each platform fills. Upgrade to `^1.1.0`.
+> **🔔 Upgrade recommended:** `1.2.0` exposes the BSSID and DNS server that the native layers already produced, fixes `nativeDetails` being withheld on macOS and Windows (where the fields do have values), and makes the speed-test latency fallback actually reachable when no standalone ping runs. `pingTimeout` / `dnsTimeout` are now configurable from the facade. Upgrade to `^1.2.0`.
 
 🌐 **[Official Website](https://www.zerolabsco.com/)** &nbsp;·&nbsp; 📦 **[View on pub.dev](https://pub.dev/packages/zero_network_kit)** &nbsp;·&nbsp; 🔗 **[View on GitHub](https://github.com/zero-labsco/zero_network_kit)**
 
@@ -74,7 +74,7 @@ Design goals:
 
 ```yaml
 dependencies:
-  zero_network_kit: ^1.1.0
+  zero_network_kit: ^1.2.0
 ```
 
 ### Android permissions

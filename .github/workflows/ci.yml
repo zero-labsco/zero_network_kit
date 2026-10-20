@@ -5,11 +5,11 @@ on:
     branches: ['v*.*.*']
     # 仅核心代码变更触发 CI，跳过纯资源/非包文件提交
     # Only trigger CI for core code changes, skip pure asset/non-package commits
-    # 注意：README*.md / CHANGELOG.md / docs/** 等用户态文档「不」在此忽略——否则纯文档 PR
+    # 注意：README*.md / CHANGELOG.md / website/pages/** 等用户态文档「不」在此忽略——否则纯文档 PR
     # 会让 ci.yml 整条 workflow 被跳过，导致分支保护的 required checks 永远不出现、PR 无法合并。
     # 纯文档改动仍会触发 ci.yml，但被 path-filter 判定为 code=false，重 job 绿色跳过。
-    # NOTE: user-facing docs (README*.md / CHANGELOG.md / docs/**, plus any other
-    # `**.md`) are intentionally NOT ignored. Ignoring them would skip the entire ci.yml
+    # NOTE: user-facing docs (README*.md / CHANGELOG.md / website/pages/**, plus any
+    # other `**.md`) are intentionally NOT ignored. Ignoring them would skip the entire ci.yml
     # workflow for docs-only PRs, leaving the branch-protection required checks permanently
     # pending and blocking merge. Docs-only PRs still trigger ci.yml but the heavy jobs
     # skip green via path-filter (code=false).
@@ -17,7 +17,7 @@ on:
       # Convention/agent docs (AGENTS.md, .codebuddy/**) are intentionally NOT ignored
       # so docs-only PRs still run CI and satisfy branch protection's required checks.
       # 注意：以下文档类项刻意不在此忽略（否则纯文档 PR 会让整条 workflow 跳过、required checks 黄色卡死）：
-      #   README*.md / CHANGELOG.md / docs/** / CONTRIBUTING.md / TODO.md / 任意其他 **.md
+      #   README*.md / CHANGELOG.md / website/pages/** / CONTRIBUTING.md / TODO.md / 任意其他 **.md
       # 它们不是 code 路径，但作为文档 PR 要让 workflow 触发（code=false → 绿色跳过）。
       # 精细化忽略 GitHub 配置，但保留 workflows/ 目录的 CI 触发（Dependabot 改 action 版本需要跑 CI）
       # Finer-grained GitHub ignores — workflows MUST trigger CI (Dependabot action updates need CI)
@@ -94,7 +94,7 @@ jobs:
         uses: dorny/paths-filter@v4
         with:
           filters: |
-            # 所有文档/资源类文件（README*.md、CHANGELOG.md、docs/**、LICENSE、*.yml/*.yaml、*.txt、图片等）
+            # 所有文档/资源类文件（README*.md、CHANGELOG.md、website/pages/**、LICENSE、*.yml/*.yaml、*.txt、图片等）
             # 均不在此列表 → 纯文档改动 code=false → 两个必需检查绿色跳过（不过 pana）。
             # 仅当同时改动下列代码文件时，任一路径匹配 → code=true → 跑真实 analyze/test/pana。
             # All doc/asset files are NOT listed here, so docs-only changes → code=false →
@@ -108,6 +108,15 @@ jobs:
               - 'test/**'
               - 'android/**'
               - 'ios/**'
+              # 其余四个平台的原生实现此前不在列表里：只改 macos / linux / windows /
+              # web 的原生代码会让 code=false，两个必需检查绿色跳过，完全不过 CI。
+              # The other four platforms used to be missing: a PR touching only
+              # macos / linux / windows / web native code yielded code=false, so
+              # the required checks skipped green and nothing was ever verified.
+              - 'macos/**'
+              - 'linux/**'
+              - 'windows/**'
+              - 'web/**'
               - 'example/lib/**'
               - 'example/pubspec.yaml'
               - 'example/pubspec.lock'
@@ -145,7 +154,7 @@ jobs:
           # advances over time and the formatter rules change, which makes HEAD's
           # formatted files look "unformatted" on CI and loops forever.
           # 固定 Flutter/Dart 版本，保证 CI、发布、本地三处的 dart format 输出一致。
-          flutter-version: '3.41.7'
+          flutter-version: '3.47.5'
           cache: true
 
       - name: Normalize working tree to LF
@@ -232,9 +241,9 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          # Keep in sync with the analyze-and-test job (flutter-version: '3.41.7').
-          # 与 analyze-and-test 保持一致（flutter-version: '3.41.7'）。
-          flutter-version: '3.41.7'
+          # Keep in sync with the analyze-and-test job (flutter-version: '3.47.5').
+          # 与 analyze-and-test 保持一致（flutter-version: '3.47.5'）。
+          flutter-version: '3.47.5'
           cache: true
 
       - name: Cache pub dependencies

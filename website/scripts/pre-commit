@@ -8,9 +8,14 @@
 # On commit, it runs sync-docs.mjs which:
 #   - detects whether website/ source or pubspec.yaml version changed
 #   - injects the package version (from pubspec.yaml) into website/pages/*.md
-#   - builds the Nextra site (website/out/)
-#   - syncs website/out/ -> docs/ and stages it
+#   - builds the Nextra site into website/out/ (plus .nojekyll)
 # If nothing changed, it exits 0 immediately (no build).
+#
+# website/out/ is gitignored: this hook only keeps a local preview build fresh.
+# The published site is built by CI (.github/workflows/docs.yml), which pushes
+# website/out/ to the gh-pages branch — nothing is committed into docs/.
+# website/out/ 已被 gitignore：该 hook 只用于刷新本地预览构建。线上站点由 CI
+# （.github/workflows/docs.yml）构建并推送到 gh-pages 分支，不会提交 docs/。
 
 root="$(git rev-parse --show-toplevel)"
 node "$root/website/scripts/sync-docs.mjs"

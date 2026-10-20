@@ -28,10 +28,10 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          # Keep in sync with ci.yml (flutter-version: '3.41.7') so the pre-publish
+          # Keep in sync with ci.yml (flutter-version: '3.47.5') so the pre-publish
           # `dart format` check (run via the reused ci.yml) uses the same formatter.
-          # 与 ci.yml 保持一致（flutter-version: '3.41.7'）。
-          flutter-version: '3.41.7'
+          # 与 ci.yml 保持一致（flutter-version: '3.47.5'）。
+          flutter-version: '3.47.5'
           cache: true
 
       # ========== 发布前校验 / Pre-publish validation ==========
