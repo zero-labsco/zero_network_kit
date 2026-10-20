@@ -1,5 +1,37 @@
 # Changelog
 
+## 1.2.0
+
+### Added / 新增
+
+- **`NetworkConnectionInfo.bssid` / `.dnsServer`** — the Android and Windows
+  native layers already returned these keys, and the platform interface
+  documented `bssid`, but the Dart side never read either one, so the values
+  were silently dropped. Both are now surfaced on the snapshot (and serialised
+  by `toMap()` / `fromMap()`); they stay `null` on iOS, macOS, Linux and Web.
+  - **`NetworkConnectionInfo.bssid` / `.dnsServer`**——Android 与 Windows 原生层早已返回这两个键，平台接口也写明了 `bssid`，但 Dart 侧从未读取，数据被静默丢弃。现已暴露到快照上（并经 `toMap()` / `fromMap()` 序列化）；iOS、macOS、Linux 与 Web 仍为 `null`。
+- **`pingTimeout` / `dnsTimeout` on the facade** — `NetworkDiagnostic.evaluateQuality()`
+  now forwards both timeouts to the quality service, and
+  `NetworkDiagnostic.runSpeedTest()` forwards `pingTimeout` to the speed test
+  service. They were supported by the underlying services but unreachable from
+  the static API, so callers were stuck with the config defaults.
+  - **门面新增 `pingTimeout` / `dnsTimeout`**——`NetworkDiagnostic.evaluateQuality()` 现在把这两个超时透传给质量服务，`NetworkDiagnostic.runSpeedTest()` 把 `pingTimeout` 透传给测速服务。此前底层服务支持这两个参数，但静态 API 无法触达，调用方只能用配置默认值。
+
+### Fixed / 修复
+
+- **`nativeDetails` withheld on macOS and Windows** — `NetworkCapability.nativeDetails`
+  was added to the capability set only for mobile platforms, but the macOS and
+  Windows native layers do fill IP / IPv6 / gateway / VPN (Windows adds MAC and
+  DNS); only Linux answers with an empty map. UIs that hide cards based on the
+  capability were hiding fields that actually carry values. The flag now follows
+  platform support instead of "is mobile".
+  - **macOS 与 Windows 上的 `nativeDetails` 被误判为不支持**——`NetworkCapability.nativeDetails` 此前只加给移动端，但 macOS 与 Windows 原生层确实填充 IP / IPv6 / 网关 / VPN（Windows 还有 MAC 与 DNS），只有 Linux 返回空 map。按能力集隐藏卡片的 UI 会把真实有值的字段一并隐藏。该标志现按平台实际支持情况判定，而非「是否移动端」。
+- **Speed-test latency fallback was dead code** — `QualityService` always passed
+  `includePing: false` to the speed test, so `SpeedTestResult.ping` was always `0`
+  and the `speed.ping > 0` fallback for latency / jitter could never fire. The
+  speed test now runs its own latency probe when no standalone ping was requested.
+  - **测速延迟回退是死代码**——`QualityService` 恒以 `includePing: false` 调用测速，导致 `SpeedTestResult.ping` 始终为 `0`，延迟 / 抖动的 `speed.ping > 0` 回退永远无法触发。现在未单独跑延迟探测时，测速会自带一次探测。
+
 ## 1.1.0
 
 ### Fixed / 修复

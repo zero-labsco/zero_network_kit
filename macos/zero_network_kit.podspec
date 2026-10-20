@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'zero_network_kit'
-  s.version          = '1.1.0'
+  s.version          = '1.2.0'
   s.summary          = 'Flutter network diagnostics: ping, DNS, speed test, port scan and quality score.'
   s.description      = <<-DESC
 A Flutter plugin for network diagnostics: connectivity check, ping, DNS
@@ -20,7 +20,11 @@ resolution, speed test, port scanning, quality scoring and micro-benchmarks.
 
   s.dependency 'FlutterMacOS'
 
-  s.platform = :osx, '10.11'
+  # Keep in sync with Package.swift (.macOS("10.15")); CocoaPods and SwiftPM
+  # must agree on the minimum deployment target or the two distributions drift.
+  # 与 Package.swift 保持一致（.macOS("10.15")）：CocoaPods 与 SwiftPM 的最低
+  # 部署目标必须相同，否则两种分发方式会不一致。
+  s.platform = :osx, '10.15'
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES' }
   s.swift_version = '5.0'
 end
