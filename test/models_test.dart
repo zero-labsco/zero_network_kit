@@ -229,10 +229,13 @@ void main() {
       // native layer reads SSID / BSSID / RSSI; iOS never requests the
       // *Access WiFi Information* capability.
       expect(caps.supports(NetworkCapability.wifiDetails), Platform.isAndroid);
-      expect(
-        caps.supports(NetworkCapability.nativeDetails),
-        Platform.isAndroid || Platform.isIOS,
-      );
+      // 原生详情按「平台是否真的产出字段」判定：Android / iOS / macOS / Windows
+      // 都会返回，只有 Linux 的原生层返回空 map。此前限定为「仅移动端」，会让
+      // macOS / Windows 上真实有值的字段被隐藏 / Native details follow the
+      // platforms that actually produce fields: Android, iOS, macOS and Windows
+      // all return them, only the Linux native layer answers with an empty map.
+      // Restricting the flag to mobile used to hide real values on macOS/Windows.
+      expect(caps.supports(NetworkCapability.nativeDetails), !Platform.isLinux);
       expect(caps.supports(NetworkCapability.quality), isTrue);
     });
   });

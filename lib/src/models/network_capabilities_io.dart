@@ -61,10 +61,16 @@ class NetworkCapabilities {
 
   /// 基于当前运行平台构建能力集 / Builds the capability set for the host platform.
   ///
-  /// 桌面（A 档）不保证原生详情，故 [NetworkCapability.nativeDetails] 仅移动端纳入；
-  /// [NetworkCapability.icmpPing] 反之仅桌面可用 /
-  /// Desktops (tier A) cannot reliably provide native details, so [nativeDetails]
-  /// is mobile-only; [icmpPing] is desktop-only.
+  /// [NetworkCapability.nativeDetails] 按**平台实际是否产出原生详情**判定，而不是
+  /// 按「是否移动端」：macOS 与 Windows 的原生层同样返回 IP / IPv6 / 网关 / VPN
+  /// （Windows 还提供 MAC 与 DNS），只有 Linux 的 `getNetworkDetails` 返回空 map。
+  /// 此前把它限定为「仅移动端」，会让 macOS / Windows 上真实有值的字段被 UI 隐藏 /
+  /// [NetworkCapability.nativeDetails] reflects whether the native layer actually
+  /// produces details, not whether the platform is mobile: macOS and Windows also
+  /// return IP / IPv6 / gateway / VPN (Windows adds MAC and DNS), and only Linux
+  /// answers `getNetworkDetails` with an empty map. Restricting it to mobile made
+  /// UIs hide fields that do carry values on macOS / Windows.
+  /// [NetworkCapability.icmpPing] 仅桌面可用 / [icmpPing] is desktop-only.
   static NetworkCapabilities current() {
     final isMobile = Platform.isAndroid || Platform.isIOS;
     final isDesktop =
@@ -93,7 +99,12 @@ class NetworkCapabilities {
       NetworkCapability.quality,
       NetworkCapability.benchmark,
     };
-    if (isMobile) supported.add(NetworkCapability.nativeDetails);
+    // 移动端 + macOS + Windows 都会产出原生详情，只有 Linux 返回空 map /
+    // Mobile plus macOS and Windows all produce native details; only Linux
+    // answers with an empty map.
+    if (isMobile || Platform.isMacOS || Platform.isWindows) {
+      supported.add(NetworkCapability.nativeDetails);
+    }
     if (isDesktop) supported.add(NetworkCapability.icmpPing);
     // 只有 Android 原生层读取 SSID / BSSID / RSSI / Only the Android native
     // layer reads SSID / BSSID / RSSI.

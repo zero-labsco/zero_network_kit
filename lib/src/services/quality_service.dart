@@ -92,7 +92,14 @@ class QualityService {
           pingHost: pingHost ?? config.pingHost,
           pingCount: pingCount ?? config.pingCount,
           includeUpload: includeUpload,
-          includePing: false,
+          // 未单独跑延迟探测时，让测速顺带做一次：否则 `speed.ping` 恒为 0，
+          // 下面的延迟 / 抖动回退永远取不到值（此前它是死代码）/ Run the latency
+          // probe inside the speed test when no standalone ping was requested;
+          // otherwise `speed.ping` stays 0 and the latency / jitter fallback
+          // below can never fire (it used to be dead code).
+          // 反之若已经单独跑过，就不再重复探测 / When a standalone ping did run,
+          // the probe is deliberately not repeated.
+          includePing: !includePing,
         );
       } catch (_) {
         speed = null;
