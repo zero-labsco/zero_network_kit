@@ -49,12 +49,12 @@ class WebConnectivityAdapter implements ConnectivityAdapter {
     StreamSubscription<Event>? offlineSub;
 
     void attach() {
-      onlineSub ??= EventStreamProvider<Event>(
-        'online',
-      ).forTarget(window).listen((_) => controller.add(const ['wifi']));
-      offlineSub ??= EventStreamProvider<Event>(
-        'offline',
-      ).forTarget(window).listen((_) => controller.add(const ['none']));
+      onlineSub ??= EventStreamProvider<Event>('online')
+          .forTarget(window)
+          .listen((_) => controller.add(const ['wifi']));
+      offlineSub ??= EventStreamProvider<Event>('offline')
+          .forTarget(window)
+          .listen((_) => controller.add(const ['none']));
     }
 
     void detach() {

@@ -313,9 +313,9 @@ class _DiagnosticPageState extends State<DiagnosticPage> {
                               '/ 100 · ${_quality!.level.label}',
                               style: Theme.of(context).textTheme.bodyMedium
                                   ?.copyWith(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
                                   ),
                             ),
                           ],
@@ -328,9 +328,9 @@ class _DiagnosticPageState extends State<DiagnosticPage> {
                           _quality!.suggestions.join('\n'),
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
                               ),
                         ),
                       ],
@@ -549,9 +549,8 @@ class _ErrorCard extends StatelessWidget {
             Expanded(
               child: Text(
                 message,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: colors.onErrorContainer,
-                ),
+                style: Theme.of(context).textTheme.bodyMedium
+                    ?.copyWith(color: colors.onErrorContainer),
               ),
             ),
           ],

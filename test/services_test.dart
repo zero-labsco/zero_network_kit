@@ -58,9 +58,8 @@ void main() {
       final adapter = FakeConnectivityAdapter(<String>['wifi']);
       addTearDown(adapter.dispose);
 
-      final info = await ConnectivityService(
-        adapter: adapter,
-      ).checkConnection(includeNativeDetails: false);
+      final info = await ConnectivityService(adapter: adapter)
+          .checkConnection(includeNativeDetails: false);
 
       expect(info.isConnected, isTrue);
       expect(info.type, NetworkType.wifi);
@@ -71,17 +70,15 @@ void main() {
       final adapter = FakeConnectivityAdapter(<String>['none']);
       addTearDown(adapter.dispose);
 
-      final info = await ConnectivityService(
-        adapter: adapter,
-      ).checkConnection(includeNativeDetails: false);
+      final info = await ConnectivityService(adapter: adapter)
+          .checkConnection(includeNativeDetails: false);
 
       expect(info.type, NetworkType.none);
     });
 
     test('degrades gracefully when the adapter throws', () async {
-      final info = await ConnectivityService(
-        adapter: _ThrowingAdapter(),
-      ).checkConnection(includeNativeDetails: false);
+      final info = await ConnectivityService(adapter: _ThrowingAdapter())
+          .checkConnection(includeNativeDetails: false);
 
       expect(info, isNotNull);
       expect(info.isVpn, isFalse);
@@ -123,9 +120,8 @@ void main() {
       final adapter = FakeConnectivityAdapter(<String>['none']);
       addTearDown(adapter.dispose);
 
-      final info = await ConnectivityService(
-        adapter: adapter,
-      ).checkConnection(includeNativeDetails: false);
+      final info = await ConnectivityService(adapter: adapter)
+          .checkConnection(includeNativeDetails: false);
 
       // 适配器已明确报告 `none`；虚拟机网卡 / Docker 网桥残留的 IP 不应把离线判
       // 成在线 / The adapter explicitly reported `none`; a leftover VM or Docker
@@ -378,30 +374,27 @@ void main() {
   });
 
   group('QualityService', () {
-    test(
-      'falls back to the speed-test latency when no ping was requested',
-      () async {
-        final speedTest = _FakeSpeedTestService();
-        final service = QualityService(
-          connectivityService: _StaticConnectivityService(),
-          speedTestService: speedTest,
-        );
+    test('falls back to the speed-test latency when no ping was requested', () async {
+      final speedTest = _FakeSpeedTestService();
+      final service = QualityService(
+        connectivityService: _StaticConnectivityService(),
+        speedTestService: speedTest,
+      );
 
-        final score = await service.evaluateQuality(
-          config: const NetworkDiagnosticConfig(),
-          includePing: false,
-          includeDns: false,
-          includeSpeedTest: true,
-        );
+      final score = await service.evaluateQuality(
+        config: const NetworkDiagnosticConfig(),
+        includePing: false,
+        includeDns: false,
+        includeSpeedTest: true,
+      );
 
-        // 未单独跑延迟探测时，测速必须自己带上一次探测，否则 `speed.ping` 恒为 0、
-        // 回退永远取不到值（此前它是一段死代码）/ With no standalone ping the speed
-        // test must run the probe itself; otherwise `speed.ping` stays 0 and the
-        // fallback can never fire (it used to be dead code).
-        expect(speedTest.includePingSeen, isTrue);
-        expect(score.metrics['latency'], 25);
-      },
-    );
+      // 未单独跑延迟探测时，测速必须自己带上一次探测，否则 `speed.ping` 恒为 0、
+      // 回退永远取不到值（此前它是一段死代码）/ With no standalone ping the speed
+      // test must run the probe itself; otherwise `speed.ping` stays 0 and the
+      // fallback can never fire (it used to be dead code).
+      expect(speedTest.includePingSeen, isTrue);
+      expect(score.metrics['latency'], 25);
+    });
 
     test(
       'does not repeat the probe when a standalone ping already ran',

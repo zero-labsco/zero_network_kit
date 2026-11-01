@@ -36,9 +36,9 @@ class NetworkBenchmark {
       iterations: iterations,
       warmupIterations: warmupIterations,
       tasks: <String, Future<void> Function(int iteration)>{
-        'connection': (_) => NetworkDiagnostic.checkConnection(
-          includeNativeDetails: false,
-        ).then((_) {}),
+        'connection': (_) =>
+            NetworkDiagnostic.checkConnection(includeNativeDetails: false)
+                .then((_) {}),
         'ping': (_) => NetworkDiagnostic.ping(
           host: targetHost,
           count: 1,
@@ -68,9 +68,9 @@ class NetworkBenchmark {
       iterations: iterations,
       warmupIterations: warmupIterations,
       tasks: <String, Future<void> Function(int iteration)>{
-        'connection': (_) => NetworkDiagnostic.checkConnection(
-          includeNativeDetails: false,
-        ).then((_) {}),
+        'connection': (_) =>
+            NetworkDiagnostic.checkConnection(includeNativeDetails: false)
+                .then((_) {}),
       },
     );
   }
